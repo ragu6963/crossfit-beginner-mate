@@ -1,5 +1,6 @@
-import { Context, Hono } from "hono";
+import { Hono } from "hono";
 import { handle } from "hono/cloudflare-pages";
+import { createMiddleware } from "hono/factory";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import type { Env } from "../../src/types";
 import {
@@ -87,19 +88,20 @@ app.get("/admin/me", async (c) => {
   return c.json({ role: payload.role });
 });
 
-// 관리자 인증 확인 헬퍼: /api/admin/sessions 하위 쓰기 API에서 공통 사용
-async function requireAdmin(c: Context<{ Bindings: Env }>): Promise<boolean> {
+// 관리자 인증 미들웨어: /api/admin/sessions 하위 쓰기 API 전체(생성/수정/삭제/가이드)에 공통 적용
+const requireAdminMiddleware = createMiddleware<{ Bindings: Env }>(async (c, next) => {
   const token = getCookie(c, ADMIN_SESSION_COOKIE);
   const payload = token ? await verifyAdminSessionToken(token, c.env.JWT_SECRET) : null;
-  return payload !== null;
-}
+  if (!payload) {
+    return c.json(errorResponse("unauthorized", "인증이 필요합니다."), 401);
+  }
+  await next();
+});
+app.use("/admin/sessions", requireAdminMiddleware);
+app.use("/admin/sessions/*", requireAdminMiddleware);
 
 // POST /api/admin/sessions (세션 생성)
 app.post("/admin/sessions", async (c) => {
-  if (!(await requireAdmin(c))) {
-    return c.json(errorResponse("unauthorized", "인증이 필요합니다."), 401);
-  }
-
   const body = await c.req.json<Partial<SessionInput>>().catch(() => ({}));
   const validationError = validateSessionInput(body);
   if (validationError) {
@@ -118,10 +120,6 @@ app.post("/admin/sessions", async (c) => {
 
 // PUT /api/admin/sessions/:id (세션 수정)
 app.put("/admin/sessions/:id", async (c) => {
-  if (!(await requireAdmin(c))) {
-    return c.json(errorResponse("unauthorized", "인증이 필요합니다."), 401);
-  }
-
   const id = c.req.param("id");
   const body = await c.req.json<Partial<SessionInput>>().catch(() => ({}));
   const validationError = validateSessionInput(body);
@@ -144,10 +142,6 @@ app.put("/admin/sessions/:id", async (c) => {
 
 // POST /api/admin/sessions/:id/guide (LLM 가이드 생성/재생성, 인증 필요)
 app.post("/admin/sessions/:id/guide", async (c) => {
-  if (!(await requireAdmin(c))) {
-    return c.json(errorResponse("unauthorized", "인증이 필요합니다."), 401);
-  }
-
   const id = c.req.param("id");
   const session = await getSessionById(c.env.DB, id);
   if (!session) {
@@ -168,10 +162,6 @@ app.post("/admin/sessions/:id/guide", async (c) => {
 
 // DELETE /api/admin/sessions/:id (세션 삭제)
 app.delete("/admin/sessions/:id", async (c) => {
-  if (!(await requireAdmin(c))) {
-    return c.json(errorResponse("unauthorized", "인증이 필요합니다."), 401);
-  }
-
   const id = c.req.param("id");
   const deleted = await deleteSession(c.env.DB, id);
   if (!deleted) {
