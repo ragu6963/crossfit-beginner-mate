@@ -1,0 +1,20 @@
+{
+  "name": "crossfit-beginner-mate",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler pages dev public",
+    "db:migrate:local": "wrangler d1 migrations apply crossfit_beginner_mate --local",
+    "db:migrate:remote": "wrangler d1 migrations apply crossfit_beginner_mate --remote",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260801.1",
+    "typescript": "^5.6.2",
+    "wrangler": "^4.0.0"
+  },
+  "dependencies": {
+    "hono": "^4.6.9"
+  }
+}

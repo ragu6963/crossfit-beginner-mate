@@ -1,0 +1,608 @@
+/*
+  DESIGN.md 기반 공용 토큰. Apple 디자인 시스템의 색상/타이포/spacing/radius 규칙을
+  콘텐츠 중심의 이 서비스에 맞게 축소 적용했다(제품 사진·그림자·다크 타일 alternation은 미사용).
+  본문 폰트는 한글 가독성을 위해 Pretendard를 사용한다(각 HTML의 <head>에서 CDN으로 로드).
+*/
+:root {
+  --color-primary: #0066cc;
+  --color-primary-focus: #0071e3;
+  --color-canvas: #ffffff;
+  --color-canvas-parchment: #f5f5f7;
+  --color-surface-pearl: #fafafc;
+  --color-ink: #1d1d1f;
+  --color-ink-muted-80: #333333;
+  --color-ink-muted-48: #7a7a7a;
+  --color-hairline: #e0e0e0;
+  --color-divider-soft: rgba(0, 0, 0, 0.08);
+  --color-danger: #c0392b;
+
+  --font-display: "Pretendard", system-ui, -apple-system, sans-serif;
+  --font-body: "Pretendard", system-ui, -apple-system, sans-serif;
+
+  --space-xxs: 4px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 17px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-xxl: 48px;
+
+  --radius-sm: 8px;
+  --radius-md: 11px;
+  --radius-lg: 18px;
+  --radius-pill: 9999px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+  background: var(--color-canvas-parchment);
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  margin: 0;
+}
+
+/* display-lg(34px)/body-strong(17px)는 디스플레이 특유의 타이트 트래킹(음수)을 쓰지만,
+   tagline(21px)은 DESIGN.md 타이포 하이어라키표에서 양의 트래킹(+0.231px)으로 명시되어 있어
+   h1/h3와 동일한 음수 트래킹을 상속하면 스펙과 반대 방향이 된다. h2만 별도로 뒤집는다. */
+h1 { font-size: 34px; letter-spacing: -0.02em; }
+h2 { font-size: 21px; letter-spacing: 0.011em; }
+h3 { font-size: 17px; letter-spacing: -0.02em; }
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+/* DESIGN.md: button-primary-focus — 2px solid {colors.primary-focus} 아웃라인을 모든 상호작용
+   요소에 일괄 적용(브라우저 기본 아웃라인 대신 브랜드 포커스 링을 사용) */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-primary-focus);
+  outline-offset: 2px;
+}
+
+.container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--space-lg) var(--space-md) var(--space-xxl);
+}
+
+/* 상단 날짜 제목 (참고 이미지: 큰 중앙 정렬 타이틀) */
+.page-date-title {
+  text-align: center;
+  font-size: 24px;
+  margin-bottom: var(--space-lg);
+}
+
+/* 날짜 스트립: 좌우 스크롤, 버튼 없이 스크롤로만 주 이동 */
+.week-strip-wrapper {
+  overflow-x: auto;
+  margin: 0 calc(-1 * var(--space-md)) var(--space-xl);
+  padding: 0 var(--space-md);
+  scrollbar-width: none;
+}
+
+.week-strip-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+.week-strip {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.day-cell {
+  flex: 0 0 auto;
+  width: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--space-xxs) 0;
+}
+
+.day-cell .day-label {
+  font-size: 13px;
+  color: var(--color-ink-muted-48);
+}
+
+.day-cell .day-number {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-ink);
+  width: 32px;
+  height: 32px;
+  line-height: 32px;
+  border-radius: 50%;
+}
+
+.day-cell.past .day-label,
+.day-cell.past .day-number {
+  color: var(--color-ink-muted-48);
+  font-weight: 400;
+}
+
+.day-cell.selected .day-label,
+.day-cell.selected .day-number {
+  color: var(--color-primary);
+}
+
+.day-cell.selected .day-number {
+  border: 2px solid var(--color-primary);
+}
+
+/* 날짜 변경 시 좌우 슬라이드 전환 */
+.content-viewport {
+  overflow-x: hidden;
+}
+
+#content {
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+/* 세션 요약 행: 관리자가 등록한 와드 원문을 바로 노출. LLM 추가 정보만 클릭 시 상세 시트로 표시 */
+.session-row {
+  display: block;
+  width: 100%;
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md) var(--space-lg);
+  margin-bottom: var(--space-sm);
+  cursor: pointer;
+  font-family: var(--font-body);
+  text-align: left;
+}
+
+.session-row.session-row-static {
+  cursor: default;
+}
+
+
+.class-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--color-canvas-parchment);
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.session-row-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.class-type-name {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--color-ink-muted-48);
+}
+
+.session-row-header .class-type-name {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.session-row-wod {
+  white-space: pre-wrap;
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--color-ink-muted-80);
+  margin: var(--space-xs) 0 0;
+}
+
+/* DESIGN.md의 store-utility-card 패턴 그대로: 카드는 배경/칩 없이 끝에 놓인 순수 text-link
+   하나로만 "더 볼 내용이 있음"을 알린다({component.text-link} 그 자체를 재사용). */
+.session-row-link {
+  display: block;
+  color: var(--color-primary);
+  font-size: 15px;
+  font-weight: 600;
+  margin: var(--space-sm) 0 0;
+}
+
+/* 세션 상세 시트: PC=중앙 모달(스케일 페이드), 모바일=하단에서 올라오는 바텀시트(슬라이드업) */
+.detail-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  z-index: 100;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.detail-backdrop.open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.detail-panel {
+  background: var(--color-canvas);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  width: 100%;
+  max-width: 480px;
+  max-height: 80vh;
+  overflow-y: auto;
+  transform: scale(0.96);
+  opacity: 0;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.detail-backdrop.open .detail-panel {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.detail-panel-handle {
+  display: none;
+}
+
+.detail-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+}
+
+.detail-panel-header > div {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.detail-close-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: var(--color-ink-muted-48);
+  cursor: pointer;
+  padding: var(--space-xs);
+}
+
+.detail-panel pre.raw-wod {
+  white-space: pre-wrap;
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1.5;
+  margin: 0;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-hairline);
+}
+
+/* LLM 출력(parsed_guide) 렌더링 영역 */
+.guide-section {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--color-hairline);
+}
+
+.guide-section-title {
+  font-size: 15px;
+  color: var(--color-ink-muted-48);
+  margin-bottom: var(--space-sm);
+}
+
+.guide-movement {
+  margin-bottom: var(--space-md);
+}
+
+.guide-movement-name {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.guide-movement-name-en {
+  font-weight: 400;
+  color: var(--color-ink-muted-48);
+  font-size: 14px;
+}
+
+.guide-movement-desc {
+  margin: 4px 0 0;
+  font-size: 15px;
+}
+
+.guide-scaling-tip {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--color-primary);
+}
+
+.guide-key-tips {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 15px;
+}
+
+.guide-key-tips li {
+  margin-bottom: 4px;
+}
+
+.guide-stretch {
+  margin-bottom: var(--space-md);
+}
+
+.guide-stretch-name {
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: var(--space-xs);
+}
+
+.guide-video-search-link {
+  display: inline-block;
+  font-size: 14px;
+  color: var(--color-primary);
+  background: var(--color-canvas-parchment);
+  border-radius: var(--radius-pill);
+  padding: 8px 16px;
+}
+
+@media (max-width: 640px) {
+  .detail-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .detail-panel {
+    max-width: none;
+    max-height: 85vh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding: var(--space-sm) var(--space-lg) var(--space-xl);
+    transform: translateY(100%);
+  }
+
+  .detail-backdrop.open .detail-panel {
+    transform: translateY(0);
+  }
+
+  .detail-panel-handle {
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: var(--radius-pill);
+    background: var(--color-hairline);
+    margin: var(--space-xs) auto var(--space-md);
+  }
+}
+
+/* 안내 카드 (데이터 미존재) */
+.empty-card {
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xxl) var(--space-lg);
+  text-align: center;
+  color: var(--color-ink-muted-80);
+}
+
+.empty-card p {
+  margin: 0 0 var(--space-xs);
+}
+
+/* 버튼 */
+.btn-primary {
+  display: inline-block;
+  background: var(--color-primary);
+  color: #ffffff;
+  font-size: 17px;
+  font-weight: 400;
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 11px 22px;
+  cursor: pointer;
+}
+
+.btn-secondary {
+  display: inline-block;
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 17px;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-pill);
+  padding: 11px 22px;
+  cursor: pointer;
+}
+
+.btn-danger {
+  display: inline-block;
+  background: transparent;
+  color: var(--color-danger);
+  font-size: 14px;
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-pill);
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+.btn-utility {
+  display: inline-block;
+  background: var(--color-ink);
+  color: #ffffff;
+  font-size: 14px;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 8px 15px;
+  cursor: pointer;
+}
+
+/* DESIGN.md: scale(0.95) press state는 시스템 전역 마이크로 인터랙션이지만, 이 규칙은 작고
+   버튼처럼 생긴 컨트롤(pill 버튼, 원형 날짜 셀 등)을 대상으로 한 것이다. 여러 줄짜리 카드
+   전체(.session-row)를 축소시키면 부자연스러워 보이므로 카드류는 제외한다. */
+.btn-primary:active,
+.btn-secondary:active,
+.btn-danger:active,
+.btn-utility:active,
+.detail-close-btn:active,
+.day-cell:active {
+  transform: scale(0.95);
+}
+
+.session-row:not(.session-row-static):active {
+  background: var(--color-canvas-parchment);
+}
+
+/* 폼 */
+.field {
+  margin-bottom: var(--space-lg);
+}
+
+.field label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: var(--space-xxs);
+  color: var(--color-ink-muted-80);
+}
+
+.field input,
+.field select {
+  width: 100%;
+  height: 44px;
+  padding: 0 16px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-divider-soft);
+  background: var(--color-canvas);
+  font-size: 17px;
+  font-family: var(--font-body);
+  color: var(--color-ink);
+}
+
+.field textarea {
+  width: 100%;
+  min-height: 160px;
+  padding: 12px 16px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-divider-soft);
+  background: var(--color-canvas);
+  font-size: 17px;
+  font-family: var(--font-body);
+  color: var(--color-ink);
+  resize: vertical;
+}
+
+.error-text {
+  color: var(--color-danger);
+  font-size: 14px;
+  margin-top: var(--space-xs);
+}
+
+/* 관리자 대시보드 */
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-lg);
+}
+
+.admin-add-btn {
+  display: block;
+  margin-bottom: var(--space-lg);
+}
+
+.detail-admin-actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--color-hairline);
+}
+
+.detail-admin-actions .btn-secondary,
+.detail-admin-actions .btn-danger {
+  flex: 1;
+  text-align: center;
+  padding: 11px 14px;
+  font-size: 15px;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  z-index: 100;
+}
+
+.modal {
+  background: var(--color-canvas);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.login-container {
+  max-width: 360px;
+  margin: 120px auto 0;
+  padding: var(--space-lg);
+  text-align: center;
+}
+
+.login-container .field {
+  text-align: left;
+}
+
+/* 모바일 반응형 (prd.md: 모바일 필수 대응) */
+@media (max-width: 640px) {
+  .container {
+    padding: var(--space-md) var(--space-sm) var(--space-xl);
+  }
+
+  h1 {
+    font-size: 28px;
+  }
+
+  .page-date-title {
+    font-size: 20px;
+  }
+
+  .login-container {
+    margin-top: 64px;
+  }
+}

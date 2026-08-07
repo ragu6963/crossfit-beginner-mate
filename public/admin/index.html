@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>관리자 대시보드 - CrossFit Beginner Mate</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@1.3.9/dist/web/static/pretendard.css" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <main class="container">
+    <div class="admin-header">
+      <h1>와드 관리</h1>
+      <button id="logout-btn" class="btn-utility" type="button">로그아웃</button>
+    </div>
+
+    <h2 id="selected-date-title" class="page-date-title"></h2>
+
+    <div class="week-strip-wrapper">
+      <div class="week-strip" id="week-strip"></div>
+    </div>
+
+    <button id="add-session-btn" class="btn-primary admin-add-btn" type="button">+ 세션 추가</button>
+
+    <div class="content-viewport">
+      <div id="content"></div>
+    </div>
+  </main>
+
+  <div class="detail-backdrop" id="detail-backdrop">
+    <div class="detail-panel" id="detail-panel">
+      <div class="detail-panel-handle"></div>
+      <div class="detail-panel-header">
+        <div>
+          <span class="class-type-name" id="detail-class-type"></span>
+        </div>
+        <button type="button" class="detail-close-btn" id="detail-close-btn" aria-label="닫기">✕</button>
+      </div>
+      <pre class="raw-wod" id="detail-raw-wod"></pre>
+      <div id="detail-guide"></div>
+
+      <div class="detail-admin-actions">
+        <button type="button" class="btn-secondary" id="detail-guide-btn"></button>
+        <button type="button" class="btn-secondary" id="detail-edit-btn">수정</button>
+        <button type="button" class="btn-danger" id="detail-delete-btn">삭제</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="modal-backdrop">
+    <div class="modal">
+      <h2 id="modal-title" style="margin-bottom: 24px;">세션 추가</h2>
+      <form id="session-form">
+        <input type="hidden" id="session-id" />
+        <div class="field">
+          <label for="form-date">날짜</label>
+          <input type="date" id="form-date" required />
+        </div>
+        <div class="field">
+          <label for="form-class-type-select">클래스 종류</label>
+          <select id="form-class-type-select">
+            <option value="CF Class">CF Class</option>
+            <option value="Strength Class">Strength Class</option>
+            <option value="Weightlifting Class">Weightlifting Class</option>
+            <option value="__custom__">기타 (직접 입력)</option>
+          </select>
+        </div>
+        <div class="field hidden" id="form-class-type-custom-field">
+          <label for="form-class-type-custom">클래스 종류 (직접 입력)</label>
+          <input type="text" id="form-class-type-custom" />
+        </div>
+        <div class="field">
+          <label for="form-raw-wod">와드 텍스트</label>
+          <textarea id="form-raw-wod" required></textarea>
+        </div>
+        <p class="error-text hidden" id="form-error"></p>
+        <div style="display:flex; gap: 12px; justify-content:flex-end;">
+          <button type="button" class="btn-secondary" id="modal-cancel-btn">취소</button>
+          <button type="submit" class="btn-primary">저장</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/admin/dashboard.js"></script>
+</body>
+</html>

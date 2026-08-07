@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(npx wrangler *)",
+      "Bash(curl -s -i \"http://127.0.0.1:8788/api/wods?date=2026-08-06\")",
+      "Bash(netstat -ano)",
+      "Bash(taskkill //PID 14480 //F //T)",
+      "Bash(taskkill //PID 3768 //F //T)",
+      "PowerShell(Get-CimInstance Win32_Process -Filter \"Name='node.exe'\")",
+      "Bash(curl -s -i -X POST http://127.0.0.1:8788/api/admin/login -H \"Content-Type: application/json\" -d '{\"password\":\"wrong\"}')",
+      "Bash(curl -s -i -c /tmp/cookies.txt -X POST http://127.0.0.1:8788/api/admin/login -H \"Content-Type: application/json\" -d '{\"password\":\"changeme123\"}')",
+      "Read(//tmp/**)",
+      "Bash(curl -s -i -b /tmp/cookies.txt http://127.0.0.1:8788/api/admin/me)",
+      "Bash(curl -s -i -b /tmp/cookies.txt -X POST http://127.0.0.1:8788/api/admin/sessions -H \"Content-Type: application/json\" -d '{\"date\":\"2026-08-06\",\"start_time\":\"07:00\",\"end_time\":\"07:50\",\"class_type\":\"CF Class\",\"raw_wod\":\"5Min on 2Min off x 4set\\\\n400M Run\"}')",
+      "Bash(curl -s -i -b /tmp/cookies.txt -X POST http://127.0.0.1:8788/api/admin/sessions -H \"Content-Type: application/json\" -d '{\"date\":\"2026-08-06\",\"start_time\":\"07:00\",\"end_time\":\"07:50\",\"class_type\":\"CF Class\",\"raw_wod\":\"dup\"}')",
+      "Bash(curl -s http://127.0.0.1:8788/api/wods?date=2026-08-06)",
+      "Bash(curl -s -i -b /tmp/cookies.txt -X PUT http://127.0.0.1:8788/api/admin/sessions/33fdf7ba-ef8c-4951-9654-865d4db09f5f -H 'Content-Type: application/json' -d '{\"date\":\"2026-08-06\",\"start_time\":\"07:00\",\"end_time\":\"08:00\",\"class_type\":\"CF Class\",\"raw_wod\":\"updated\"}')",
+      "Bash(curl -s -i -b /tmp/cookies.txt -X DELETE http://127.0.0.1:8788/api/admin/sessions/33fdf7ba-ef8c-4951-9654-865d4db09f5f)",
+      "Bash(curl -s -i -X POST http://127.0.0.1:8788/api/admin/sessions -H \"Content-Type: application/json\" -d '{\"date\":\"2026-08-06\",\"start_time\":\"09:00\",\"end_time\":\"10:00\",\"class_type\":\"CF Class\",\"raw_wod\":\"x\"}')",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" -L \"http://127.0.0.1:8788/admin/login.html\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" -L \"http://127.0.0.1:8788/admin/index.html\")"
+    ]
+  }
+}
