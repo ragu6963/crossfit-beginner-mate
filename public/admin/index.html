@@ -74,6 +74,13 @@
           <label for="form-raw-wod">와드 텍스트</label>
           <textarea id="form-raw-wod" required></textarea>
         </div>
+        <div class="field">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <label style="margin:0;">가이드</label>
+            <button type="button" class="btn-secondary" id="form-guide-btn">가이드 생성</button>
+          </div>
+          <div id="form-guide-preview"></div>
+        </div>
         <p class="error-text hidden" id="form-error"></p>
         <div style="display:flex; gap: 12px; justify-content:flex-end;">
           <button type="button" class="btn-secondary" id="modal-cancel-btn">취소</button>

@@ -25,11 +25,18 @@ const detailDeleteBtn = document.getElementById("detail-delete-btn");
 
 const modalBackdrop = document.getElementById("modal-backdrop");
 const modalTitle = document.getElementById("modal-title");
+const modalCancelBtn = document.getElementById("modal-cancel-btn");
 const form = document.getElementById("session-form");
 const formError = document.getElementById("form-error");
 const classTypeSelect = document.getElementById("form-class-type-select");
 const classTypeCustomField = document.getElementById("form-class-type-custom-field");
 const classTypeCustomInput = document.getElementById("form-class-type-custom");
+const formGuideBtn = document.getElementById("form-guide-btn");
+const formGuidePreview = document.getElementById("form-guide-preview");
+
+// 모달 안에서 "가이드 생성" 버튼으로 이미 저장(생성/수정)이 일어난 적이 있으면 true.
+// true인 상태로 "취소"를 누르면 목록에는 이미 반영된 데이터이므로 새로고침이 필요하다.
+let modalDirty = false;
 
 async function checkAuth() {
   const res = await fetch("/api/admin/me");
@@ -156,6 +163,11 @@ function openAddModal() {
   classTypeCustomField.classList.add("hidden");
   modalTitle.textContent = "세션 추가";
   formError.classList.add("hidden");
+  formGuidePreview.innerHTML = "";
+  formGuideBtn.textContent = "가이드 생성";
+  formGuideBtn.disabled = false;
+  modalCancelBtn.textContent = "취소";
+  modalDirty = false;
   modalBackdrop.classList.remove("hidden");
 }
 
@@ -176,6 +188,11 @@ function openEditModal(session) {
 
   modalTitle.textContent = "세션 수정";
   formError.classList.add("hidden");
+  formGuidePreview.innerHTML = Shared.renderGuideHtml(session.parsed_guide);
+  formGuideBtn.textContent = session.parsed_guide ? "가이드 재생성" : "가이드 생성";
+  formGuideBtn.disabled = false;
+  modalCancelBtn.textContent = "취소";
+  modalDirty = false;
   modalBackdrop.classList.remove("hidden");
 }
 
@@ -188,44 +205,97 @@ classTypeSelect.addEventListener("change", () => {
 });
 
 document.getElementById("add-session-btn").addEventListener("click", openAddModal);
-document.getElementById("modal-cancel-btn").addEventListener("click", closeModal);
 
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  formError.classList.add("hidden");
+modalCancelBtn.addEventListener("click", async () => {
+  closeModal();
+  // "가이드 생성" 버튼을 통해 이미 서버에 저장된 상태라면, 취소해도 목록에 반영해야 한다.
+  if (modalDirty) {
+    modalDirty = false;
+    await loadSessions(state.selectedDate);
+  }
+});
 
-  const id = document.getElementById("session-id").value;
+function readFormPayload() {
   const classType =
     classTypeSelect.value === "__custom__" ? classTypeCustomInput.value.trim() : classTypeSelect.value;
-
-  const payload = {
+  return {
     date: document.getElementById("form-date").value,
     class_type: classType,
     raw_wod: document.getElementById("form-raw-wod").value,
   };
+}
 
-  const url = id ? `/api/admin/sessions/${id}` : "/api/admin/sessions";
-  const method = id ? "PUT" : "POST";
+// 폼 내용을 세션 생성/수정 API로 저장한다. session-id가 비어있으면 생성 후 id를 채워 넣어,
+// 이후 같은 모달 안에서 재호출(가이드 생성 → 저장 버튼)해도 자연스럽게 수정 요청으로 이어진다.
+async function saveSessionFromForm() {
+  const idField = document.getElementById("session-id");
+  const payload = readFormPayload();
+  const url = idField.value ? `/api/admin/sessions/${idField.value}` : "/api/admin/sessions";
+  const method = idField.value ? "PUT" : "POST";
 
   const res = await fetch(url, {
     method,
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error?.message ?? "저장에 실패했습니다.");
+  }
+  idField.value = data.id;
+  return data;
+}
 
-  if (res.ok) {
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  formError.classList.add("hidden");
+
+  try {
+    const saved = await saveSessionFromForm();
     closeModal();
-    if (payload.date !== state.selectedDate) {
-      await selectDate(payload.date);
+    modalDirty = false;
+    if (saved.date !== state.selectedDate) {
+      await selectDate(saved.date);
     } else {
       await loadSessions(state.selectedDate);
     }
-    return;
+  } catch (err) {
+    formError.textContent = err.message;
+    formError.classList.remove("hidden");
   }
+});
 
-  const data = await res.json().catch(() => ({}));
-  formError.textContent = data?.error?.message ?? "저장에 실패했습니다.";
-  formError.classList.remove("hidden");
+// 세션 추가/수정 모달 안에서 와드 텍스트 저장과 가이드 생성을 한 화면에서 이어서 처리한다.
+// (기존에는 저장 후 모달을 닫고 목록에서 세션을 다시 클릭해야 가이드를 생성할 수 있어 불편했다.)
+formGuideBtn.addEventListener("click", async () => {
+  if (!form.reportValidity()) return;
+  if (formGuidePreview.innerHTML.trim() && !confirm("기존 가이드를 덮어쓰고 다시 생성하시겠습니까?")) return;
+
+  formError.classList.add("hidden");
+  formGuideBtn.disabled = true;
+
+  try {
+    formGuideBtn.textContent = "저장 중...";
+    const saved = await saveSessionFromForm();
+    modalDirty = true;
+    modalCancelBtn.textContent = "닫기";
+
+    formGuideBtn.textContent = "생성 중...";
+    const res = await fetch(`/api/admin/sessions/${saved.id}/guide`, { method: "POST" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data?.error?.message ?? "가이드 생성에 실패했습니다.");
+    }
+
+    formGuidePreview.innerHTML = Shared.renderGuideHtml(data.parsed_guide);
+    formGuideBtn.textContent = "가이드 재생성";
+  } catch (err) {
+    formError.textContent = err.message;
+    formError.classList.remove("hidden");
+    formGuideBtn.textContent = formGuidePreview.innerHTML.trim() ? "가이드 재생성" : "가이드 생성";
+  } finally {
+    formGuideBtn.disabled = false;
+  }
 });
 
 document.getElementById("logout-btn").addEventListener("click", async () => {
