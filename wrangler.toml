@@ -5,5 +5,5 @@ compatibility_date = "2024-09-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "crossfit_beginner_mate"
-database_id = "REPLACE_WITH_REAL_D1_DATABASE_ID"
+database_id = "25a298d9-d149-47e4-b619-1df542046a1d"
 migrations_dir = "migrations"
