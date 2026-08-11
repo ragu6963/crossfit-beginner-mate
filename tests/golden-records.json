@@ -1,0 +1,142 @@
+{
+  "_readme": [
+    "기록 파싱(src/records.ts)의 회귀 테스트용 골든 케이스입니다. 프롬프트 규칙을 고칠 때마다",
+    "`npm run test:records`로 돌려서 기존 케이스가 깨지지 않는지 확인합니다.",
+    "",
+    "expect에는 '흔들리면 안 되는 필드'만 적습니다. score_display나 scaling_detail 같은 자유",
+    "텍스트는 표현이 매번 달라도 정상이므로 단언하지 않습니다(필요하면 expect_contains 사용).",
+    "각 케이스의 why는 이 케이스가 어떤 규칙을 지키는지를 적어둔 것이며, 실패했을 때",
+    "무엇이 깨졌는지 바로 알기 위한 것입니다."
+  ],
+  "cases": [
+    {
+      "id": "interval-sets-reps",
+      "why": "인터벌 구조는 time이 아니라 sets로 판정되고, 세트별 횟수가 laps에 들어가야 한다",
+      "class_type": "CF Class",
+      "wod": "5Min on 2Min off x 4set\n400M Run\n500 / 450M Row\nRemaining time, max double under\n*TARGET : 50++",
+      "record": "48/45/47/47 마지막 세트 좀 힘들었음",
+      "expect": {
+        "score_type": "sets",
+        "laps_reps": [48, 45, 47, 47],
+        "is_team": false,
+        "capped": false
+      }
+    },
+    {
+      "id": "gender-prescription-is-rx",
+      "why": "'500 / 450M' 같은 슬래시 표기는 남/여 Rx 처방이다. 450을 수행한 것은 scaled가 아니라 rx여야 한다 (실측에서 scaled로 오판한 케이스)",
+      "class_type": "CF Class",
+      "wod": "5Min on 2Min off x 4set\n400M Run\n500 / 450M Row\nRemaining time, max double under\n*TARGET : 50++",
+      "record": "로우는 450으로 했고 더블언더 총 187개",
+      "expect": {
+        "score_type": "sets",
+        "rx_level": "rx"
+      }
+    },
+    {
+      "id": "weightlifting-load-kg",
+      "why": "역도 클래스는 중량이 스코어(load)이고, 단위가 명시되면 그대로 kg로 잡아야 한다",
+      "class_type": "Weightligting Class",
+      "wod": "Low hang snatch (below knee)\n\nEvery 3:00 x 5Set\n3 Low hang snatch +snatch (70-80%)",
+      "record": "75kg까지 성공, 마지막 세트 1개 실패",
+      "expect": {
+        "score_type": "load",
+        "score_load": 75,
+        "score_load_unit": "kg"
+      }
+    },
+    {
+      "id": "for-time-complete",
+      "why": "For Time 완주는 time이며 5:42는 342초로 환산되어야 한다",
+      "class_type": "CF Class",
+      "wod": "9-7-5\nClean & jerk (185/125)\nBurpee box jump over (30/24)\n\nTarget : 6:00 Under",
+      "record": "5:42 완주",
+      "expect": {
+        "score_type": "time",
+        "score_seconds": 342,
+        "capped": false
+      }
+    },
+    {
+      "id": "for-time-capped",
+      "why": "타임캡에 걸려 완주하지 못한 경우 capped가 true여야 한다 (스코어를 완주 기록으로 오인하면 안 됨)",
+      "class_type": "CF Class",
+      "wod": "9-7-5\nClean & jerk (185/125)\nBurpee box jump over (30/24)\n\nTarget : 6:00 Under",
+      "record": "타임캡 8분 걸림, 마지막 버피 5개 남기고 종료",
+      "expect": {
+        "score_type": "time",
+        "capped": true,
+        "score_seconds": 480,
+        "reps_remaining": 5
+      }
+    },
+    {
+      "id": "load-per-set",
+      "why": "역도는 세트마다 무게가 달라지므로 세트별 무게가 laps[].load에 남고, score_load에는 그날 최고 중량이 들어가야 한다",
+      "class_type": "Weightligting Class",
+      "wod": "Low hang snatch (below knee)\n\nEvery 3:00 x 5Set\n3 Low hang snatch +snatch (70-80%)",
+      "record": "50kg / 55kg / 60kg / 62kg / 62kg",
+      "expect": {
+        "score_type": "load",
+        "laps_load": [50, 55, 60, 62, 62],
+        "score_load": 62,
+        "score_load_unit": "kg"
+      }
+    },
+    {
+      "id": "team-amrap",
+      "why": "팀 와드는 is_team이 true여야 한다(개인 기량 지표로 쓰면 안 되므로). AMRAP은 rounds_reps",
+      "class_type": "CF Class",
+      "wod": "Team of 3\n15Min Amrap\n15M Walking lunge\n10 Deadlift (225/155)\n5 Wall walk",
+      "record": "팀으로 12라운드 + 런지 15M",
+      "expect": {
+        "score_type": "rounds_reps",
+        "score_rounds": 12,
+        "is_team": true
+      }
+    },
+    {
+      "id": "two-set-for-time",
+      "why": "'Every 10:00 x 2Set'처럼 세트마다 완주 시간이 나오면 time이 아니라 sets이고, 세트별 시간이 laps[].time_sec에 들어가야 한다",
+      "class_type": "CF Class",
+      "wod": "Core\n3Set\n20Sec hollow rock\n20Sec arch hole\n8Rep wall ball slam\n\nMETCON\nFor time of\nEvery 10:00 x 2Set\nSet 1\n100 Toes to bar *5개 이하는 노랩\n\nSet 2\n30 Devil Press (50 / 35 x 2)\n*Target : 5:00 Under",
+      "record": "1세트 8:12, 2세트 4:30",
+      "expect": {
+        "score_type": "sets",
+        "laps_time_sec": [492, 270]
+      }
+    },
+    {
+      "id": "scaled-substitution",
+      "why": "동작을 다른 동작으로 대체하면 scaled이고, 무엇으로 바꿨는지 scaling_detail에 남아야 한다",
+      "class_type": "CF Class",
+      "wod": "Core\n3Set\n20Sec hollow rock\n20Sec arch hole\n8Rep wall ball slam\n\nMETCON\nFor time of\nEvery 10:00 x 2Set\nSet 1\n100 Toes to bar *5개 이하는 노랩\n\nSet 2\n30 Devil Press (50 / 35 x 2)\n*Target : 5:00 Under",
+      "record": "토투바는 니레이즈로 대체해서 1세트 9:00, 2세트는 5:20",
+      "expect": {
+        "rx_level": "scaled"
+      },
+      "expect_present": ["scaling_detail"]
+    },
+    {
+      "id": "ambiguous-needs-review",
+      "why": "수치를 특정할 수 없는 기록은 needs_review가 true여야 한다 (조용히 그럴듯한 값을 지어내면 안 됨)",
+      "class_type": "CF Class",
+      "wod": "9-7-5\nClean & jerk (185/125)\nBurpee box jump over (30/24)\n\nTarget : 6:00 Under",
+      "record": "그냥저냥 했음",
+      "expect": {
+        "needs_review": true
+      }
+    },
+    {
+      "id": "load-without-unit",
+      "why": "무게에 단위 표기가 없으면 값을 넣더라도 needs_review를 true로 올려야 한다",
+      "class_type": "Weightligting Class",
+      "wod": "Low hang snatch (below knee)\n\nEvery 3:00 x 5Set\n3 Low hang snatch +snatch (70-80%)",
+      "record": "60까지 올림",
+      "expect": {
+        "score_type": "load",
+        "needs_review": true
+      }
+    }
+  ]
+}

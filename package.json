@@ -7,7 +7,8 @@
     "dev": "wrangler pages dev public",
     "db:migrate:local": "wrangler d1 migrations apply crossfit_beginner_mate --local",
     "db:migrate:remote": "wrangler d1 migrations apply crossfit_beginner_mate --remote",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:records": "node --experimental-strip-types scripts/check-record-parsing.ts"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260801.1",
