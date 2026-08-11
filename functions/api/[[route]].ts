@@ -171,7 +171,7 @@ app.post("/admin/sessions/:id/guide", async (c) => {
 // 개인 기록 (관리자 전용). 공개 API(/api/wods)에는 절대 노출하지 않는다.
 // ---------------------------------------------------------------------------
 
-// GET /api/admin/sessions/:id/record (기록 + 입력 뼈대 조회)
+// GET /api/admin/sessions/:id/record (기록 + 입력 양식 조회)
 app.get("/admin/sessions/:id/record", async (c) => {
   const id = c.req.param("id");
   const [record, session] = await Promise.all([
@@ -181,10 +181,10 @@ app.get("/admin/sessions/:id/record", async (c) => {
   return c.json({ record, template: session?.record_template ?? null });
 });
 
-// POST /api/admin/sessions/:id/record/template (입력 뼈대 생성/재생성)
+// POST /api/admin/sessions/:id/record/template (입력 양식 생성/재생성)
 //
 // 기록칸을 열 때마다 LLM을 부르면 매번 몇 초씩 기다려야 하므로, 세션당 한 번 만들어 저장하고
-// 이후에는 저장된 것을 그대로 쓴다. 프론트엔드는 뼈대가 없을 때만 이 API를 호출한다.
+// 이후에는 저장된 것을 그대로 쓴다. 프론트엔드는 양식이 없을 때만 이 API를 호출한다.
 app.post("/admin/sessions/:id/record/template", async (c) => {
   const id = c.req.param("id");
   const session = await getSessionById(c.env.DB, id);
@@ -196,7 +196,7 @@ app.post("/admin/sessions/:id/record/template", async (c) => {
   try {
     template = await generateRecordTemplate(c.env, session.raw_wod, session.class_type);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "입력 뼈대 생성에 실패했습니다.";
+    const message = err instanceof Error ? err.message : "입력 양식 생성에 실패했습니다.";
     return c.json(errorResponse("llm_error", message), 502);
   }
 

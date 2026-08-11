@@ -79,7 +79,7 @@ export async function updateSession(
   const existing = await getSessionById(db, id);
   if (!existing) return null;
 
-  // 와드 원문이 바뀌면 기존 입력 뼈대는 더 이상 맞지 않으므로 비운다(다음에 열 때 새로 만든다).
+  // 와드 원문이 바뀌면 기존 입력 양식은 더 이상 맞지 않으므로 비운다(다음에 열 때 새로 만든다).
   const templateStillValid = existing.raw_wod === input.raw_wod;
 
   const now = new Date().toISOString();

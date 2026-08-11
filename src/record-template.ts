@@ -3,13 +3,13 @@ import type { Env } from "./types";
 const GEMINI_MODEL = "gemini-3.6-flash";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
-// 뼈대는 매번 같아야 한다. 오늘 연 화면과 내일 연 화면의 입력칸 모양이 다르면 신뢰할 수 없다.
+// 양식은 매번 같아야 한다. 오늘 연 화면과 내일 연 화면의 입력칸 모양이 다르면 신뢰할 수 없다.
 const TEMPLATE_TEMPERATURE = 0;
 
 // LLM에게 서식까지 맡겼더니 9-7-5 For Time(완주 시간 하나가 스코어)에 "1라운드/2라운드/3라운드"
-// 칸을 만들어냈다. 잘못된 뼈대는 빈 화면보다 나쁘다 — 없는 기록을 적게 만들기 때문이다.
+// 칸을 만들어냈다. 잘못된 양식은 빈 화면보다 나쁘다 — 없는 기록을 적게 만들기 때문이다.
 // 그래서 LLM은 "이 파트의 스코어가 무엇인가"만 판정하고(records.ts와 같은 분류를 공유한다),
-// 실제 뼈대 문자열은 아래 표에 따라 코드가 조립한다. time인데 라운드칸이 생기는 일이 구조적으로 불가능해진다.
+// 실제 양식 문자열은 아래 표에 따라 코드가 조립한다. time인데 라운드칸이 생기는 일이 구조적으로 불가능해진다.
 const TEMPLATE_SCORE_TYPES = ["load", "sets", "rounds_reps", "time", "reps", "distance"] as const;
 type TemplateScoreType = (typeof TEMPLATE_SCORE_TYPES)[number];
 
@@ -54,7 +54,7 @@ const RESPONSE_SCHEMA = {
 
 function buildPrompt(rawWod: string, classType: string): string {
   return `당신은 크로스핏 와드 분석기입니다. 아래 와드를 파트로 나누고, 파트마다 무엇이 스코어인지 판정하세요.
-기록 입력칸의 뼈대를 만드는 데 쓰이므로, 결과값을 지어내지 말고 구조만 판정합니다.
+기록 입력칸의 양식을 만드는 데 쓰이므로, 결과값을 지어내지 말고 구조만 판정합니다.
 
 # 파트 분리
 - 와드 원문이 성격이 다른 파트로 나뉘면(예: 스트렝스 파트 + METCON, Core + METCON) 각각을 원문 순서대로 담는다.
@@ -86,7 +86,7 @@ const SCORE_TYPE_FIELD_LABEL: Record<TemplateScoreType, string> = {
   distance: "거리·칼로리",
 };
 
-// 판정된 구조를 실제 입력 뼈대 문자열로 조립한다. 여기가 코드인 덕분에 서식이 항상 일정하다.
+// 판정된 구조를 실제 입력 양식 문자열로 조립한다. 여기가 코드인 덕분에 서식이 항상 일정하다.
 export function assembleTemplate(parts: TemplatePart[]): string {
   const blocks: string[] = [];
   const showLabel = parts.length > 1;
