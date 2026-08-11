@@ -40,6 +40,24 @@
       <pre class="raw-wod" id="detail-raw-wod"></pre>
       <div id="detail-guide"></div>
 
+      <div class="guide-section">
+        <h3 class="guide-section-title">내 기록</h3>
+        <!-- placeholder에 결과뿐 아니라 스케일링·체감까지 적는 예시를 넣어둔다. 이 두 가지는
+             나중에 절대 복원할 수 없는 정보라, 입력칸 힌트가 곧 데이터 품질을 좌우한다. -->
+        <textarea
+          id="detail-record-input"
+          class="record-input"
+          rows="3"
+          placeholder="예) 5:42 완주 / 토투바는 니레이즈로 대체 / 마지막 라운드 많이 힘들었음"
+        ></textarea>
+        <div class="record-actions">
+          <button type="button" class="btn-secondary" id="detail-record-save-btn">기록 저장</button>
+          <button type="button" class="btn-utility hidden" id="detail-record-reparse-btn">다시 해석</button>
+          <button type="button" class="btn-utility hidden" id="detail-record-delete-btn">기록 삭제</button>
+        </div>
+        <div id="detail-record-parsed"></div>
+      </div>
+
       <div class="detail-admin-actions">
         <button type="button" class="btn-secondary" id="detail-guide-btn"></button>
         <button type="button" class="btn-secondary" id="detail-edit-btn">수정</button>

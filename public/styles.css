@@ -389,6 +389,79 @@ textarea:focus-visible {
   margin-bottom: 4px;
 }
 
+/* 내 기록(관리자 전용) 입력 및 구조화 결과 표시 */
+.record-input {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  padding: var(--space-sm);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-sm);
+  resize: vertical;
+}
+
+.record-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+}
+
+.record-parsed {
+  margin-top: var(--space-sm);
+}
+
+.record-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xxs);
+}
+
+.record-badge {
+  display: inline-block;
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-canvas-parchment);
+  color: var(--color-ink-muted-80);
+}
+
+.record-badge-score {
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 600;
+}
+
+.record-laps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+  font-size: 14px;
+  color: var(--color-ink-muted-80);
+}
+
+.record-lap b {
+  color: var(--color-ink-muted-48);
+  font-weight: 600;
+  margin-right: 2px;
+}
+
+.record-detail {
+  margin: var(--space-xs) 0 0;
+  font-size: 14px;
+  color: var(--color-ink-muted-80);
+}
+
+/* 해석이 미심쩍거나 원문 일부가 반영되지 않은 경우. 크로스핏 지식 없이도 "내가 한 것과 다른가"만
+   보고 판단할 수 있어야 하므로 눈에 띄게 둔다. */
+.record-warning {
+  margin: var(--space-xs) 0 0;
+  font-size: 14px;
+  color: var(--color-danger);
+}
+
 .guide-stretch {
   margin-bottom: var(--space-md);
 }

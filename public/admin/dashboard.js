@@ -23,6 +23,12 @@ const detailGuideBtn = document.getElementById("detail-guide-btn");
 const detailEditBtn = document.getElementById("detail-edit-btn");
 const detailDeleteBtn = document.getElementById("detail-delete-btn");
 
+const recordInput = document.getElementById("detail-record-input");
+const recordSaveBtn = document.getElementById("detail-record-save-btn");
+const recordReparseBtn = document.getElementById("detail-record-reparse-btn");
+const recordDeleteBtn = document.getElementById("detail-record-delete-btn");
+const recordParsedEl = document.getElementById("detail-record-parsed");
+
 const modalBackdrop = document.getElementById("modal-backdrop");
 const modalTitle = document.getElementById("modal-title");
 const modalCancelBtn = document.getElementById("modal-cancel-btn");
@@ -94,6 +100,7 @@ function openDetail(session) {
   detailGuideBtn.textContent = session.parsed_guide ? "가이드 재생성" : "가이드 생성";
   detailGuideBtn.disabled = false;
   detailBackdrop.classList.add("open");
+  loadRecord(session.id);
 }
 
 function closeDetail() {
@@ -133,6 +140,184 @@ detailGuideBtn.addEventListener("click", async () => {
     alert("가이드 생성에 실패했습니다.");
     detailGuideBtn.disabled = false;
     detailGuideBtn.textContent = originalText;
+  }
+});
+
+// ---------------------------------------------------------------------------
+// 내 기록 (관리자 전용). 입력은 자유 텍스트 한 칸이고, 저장하면 서버가 곧바로 LLM으로 구조화한다.
+// 구조화 결과는 읽기 전용으로만 보여준다 — 틀렸을 때 고치는 대상은 JSON이 아니라 원문이며,
+// 원문을 고쳐 다시 저장하거나 "다시 해석"을 누르는 흐름이다(원본이 항상 진실의 원천).
+// ---------------------------------------------------------------------------
+
+const SCORE_TYPE_LABELS = {
+  time: "시간",
+  sets: "세트별",
+  rounds_reps: "라운드+렙",
+  load: "중량",
+  reps: "총 횟수",
+  distance: "거리·칼로리",
+};
+
+function formatSeconds(sec) {
+  if (typeof sec !== "number") return "";
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+function renderParsedRecordHtml(parsedRecordRaw) {
+  if (!parsedRecordRaw) return "";
+
+  let p;
+  try {
+    p = JSON.parse(parsedRecordRaw);
+  } catch {
+    return "";
+  }
+
+  const badges = [];
+  if (p.score_display) badges.push(`<span class="record-badge record-badge-score">${Shared.escapeHtml(p.score_display)}</span>`);
+  if (SCORE_TYPE_LABELS[p.score_type]) badges.push(`<span class="record-badge">${SCORE_TYPE_LABELS[p.score_type]}</span>`);
+  if (p.rx_level === "rx") badges.push(`<span class="record-badge">Rx</span>`);
+  if (p.rx_level === "scaled") badges.push(`<span class="record-badge">스케일</span>`);
+  if (p.capped) badges.push(`<span class="record-badge">타임캡${p.reps_remaining ? ` · ${p.reps_remaining}개 남음` : ""}</span>`);
+  if (p.is_team) badges.push(`<span class="record-badge">팀</span>`);
+  if (p.rpe) badges.push(`<span class="record-badge">RPE ${p.rpe}${p.rpe_inferred ? " (추정)" : ""}</span>`);
+
+  const lapsHtml = (p.laps || [])
+    .map((l) => {
+      const value =
+        typeof l.reps === "number"
+          ? `${l.reps}회`
+          : typeof l.time_sec === "number"
+            ? formatSeconds(l.time_sec)
+            : typeof l.load === "number"
+              ? `${l.load}${p.score_load_unit ?? ""}`
+              : "-";
+      return `<span class="record-lap"><b>${l.index}</b> ${Shared.escapeHtml(String(value))}</span>`;
+    })
+    .join("");
+
+  // 아래 두 줄이 사실상의 검토 장치다. 크로스핏 지식이 없어도 "내가 실제로 한 것과 다른가"만
+  // 보면 되도록, 해석이 미심쩍은 부분과 아예 반영되지 않은 원문 조각을 눈에 띄게 노출한다.
+  const warnings = [];
+  if (p.needs_review) {
+    warnings.push(`확인 필요 — ${Shared.escapeHtml(p.review_reason || "해석이 확실하지 않습니다.")}`);
+  }
+  if (p.unmatched_text) {
+    warnings.push(`반영되지 않은 내용 — "${Shared.escapeHtml(p.unmatched_text)}"`);
+  }
+
+  return `
+    <div class="record-parsed">
+      <div class="record-badges">${badges.join("")}</div>
+      ${lapsHtml ? `<div class="record-laps">${lapsHtml}</div>` : ""}
+      ${p.scaling_detail ? `<p class="record-detail">스케일링: ${Shared.escapeHtml(p.scaling_detail)}</p>` : ""}
+      ${warnings.map((w) => `<p class="record-warning">${w}</p>`).join("")}
+    </div>
+  `;
+}
+
+function applyRecord(record, parseError) {
+  const hasRecord = Boolean(record);
+  recordInput.value = record?.raw_record ?? "";
+  recordSaveBtn.textContent = hasRecord ? "기록 수정" : "기록 저장";
+  recordReparseBtn.classList.toggle("hidden", !hasRecord);
+  recordDeleteBtn.classList.toggle("hidden", !hasRecord);
+
+  if (parseError) {
+    // 원본은 저장됐고 해석만 실패한 상태. 기록이 사라진 게 아니라는 점을 분명히 알린다.
+    recordParsedEl.innerHTML = `<p class="record-warning">기록은 저장됐지만 해석에 실패했습니다 (${Shared.escapeHtml(parseError)}). "다시 해석"을 눌러 재시도할 수 있습니다.</p>`;
+    return;
+  }
+  if (hasRecord && !record.parsed_record) {
+    recordParsedEl.innerHTML = `<p class="record-warning">아직 해석되지 않은 기록입니다. "다시 해석"을 눌러주세요.</p>`;
+    return;
+  }
+  recordParsedEl.innerHTML = renderParsedRecordHtml(record?.parsed_record);
+}
+
+async function loadRecord(sessionId) {
+  applyRecord(null);
+  try {
+    const res = await fetch(`/api/admin/sessions/${sessionId}/record`);
+    if (!res.ok) return;
+    const data = await res.json();
+    // 응답이 늦게 도착했는데 이미 다른 세션을 열었다면 무시한다.
+    if (currentDetailId !== sessionId) return;
+    applyRecord(data.record);
+  } catch {
+    /* 조회 실패 시 입력칸은 빈 상태로 둔다 */
+  }
+}
+
+async function withRecordButtonBusy(btn, busyText, fn) {
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = busyText;
+  try {
+    await fn();
+  } finally {
+    btn.disabled = false;
+    if (btn.textContent === busyText) btn.textContent = original;
+  }
+}
+
+recordSaveBtn.addEventListener("click", async () => {
+  if (!currentDetailId) return;
+  const rawRecord = recordInput.value.trim();
+  if (!rawRecord) {
+    alert("기록을 입력해주세요.");
+    return;
+  }
+
+  const sessionId = currentDetailId;
+  await withRecordButtonBusy(recordSaveBtn, "저장 후 해석 중...", async () => {
+    try {
+      const res = await fetch(`/api/admin/sessions/${sessionId}/record`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ raw_record: rawRecord }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data?.error?.message ?? "기록 저장에 실패했습니다.");
+        return;
+      }
+      if (currentDetailId === sessionId) applyRecord(data.record, data.parse_error);
+    } catch {
+      alert("기록 저장에 실패했습니다.");
+    }
+  });
+});
+
+recordReparseBtn.addEventListener("click", async () => {
+  if (!currentDetailId) return;
+  const sessionId = currentDetailId;
+  await withRecordButtonBusy(recordReparseBtn, "해석 중...", async () => {
+    try {
+      const res = await fetch(`/api/admin/sessions/${sessionId}/record/parse`, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data?.error?.message ?? "기록 해석에 실패했습니다.");
+        return;
+      }
+      if (currentDetailId === sessionId) applyRecord(data.record);
+    } catch {
+      alert("기록 해석에 실패했습니다.");
+    }
+  });
+});
+
+recordDeleteBtn.addEventListener("click", async () => {
+  if (!currentDetailId) return;
+  if (!confirm("이 기록을 삭제하시겠습니까? 원문도 함께 사라집니다.")) return;
+
+  const res = await fetch(`/api/admin/sessions/${currentDetailId}/record`, { method: "DELETE" });
+  if (res.ok || res.status === 204) {
+    applyRecord(null);
+  } else {
+    alert("기록 삭제에 실패했습니다.");
   }
 });
 

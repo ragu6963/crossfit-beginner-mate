@@ -15,16 +15,21 @@ import {
 } from "../../src/auth";
 import {
   createSession,
+  deleteRecord,
   deleteSession,
   findDuplicateSession,
+  getRecordBySessionId,
   getSessionById,
   listSessionsByDate,
   updateParsedGuide,
+  updateParsedRecord,
   updateSession,
+  upsertRecord,
   validateSessionInput,
   type SessionInput,
 } from "../../src/sessions";
 import { generateWodGuide } from "../../src/llm";
+import { parseWodRecord } from "../../src/records";
 
 const app = new Hono<{ Bindings: Env }>().basePath("/api");
 
@@ -158,6 +163,82 @@ app.post("/admin/sessions/:id/guide", async (c) => {
 
   const updated = await updateParsedGuide(c.env.DB, id, JSON.stringify(guide));
   return c.json(updated, 200);
+});
+
+// ---------------------------------------------------------------------------
+// 개인 기록 (관리자 전용). 공개 API(/api/wods)에는 절대 노출하지 않는다.
+// ---------------------------------------------------------------------------
+
+// GET /api/admin/sessions/:id/record (기록 조회)
+app.get("/admin/sessions/:id/record", async (c) => {
+  const record = await getRecordBySessionId(c.env.DB, c.req.param("id"));
+  return c.json({ record });
+});
+
+// PUT /api/admin/sessions/:id/record (기록 저장 + 즉시 파싱)
+//
+// 원본 저장과 파싱을 한 단계로 묶지 않는 것이 핵심이다. 운동 직후 입력한 기록은 어떤 경우에도
+// 사라지면 안 되므로 원본을 먼저 커밋하고, Gemini 호출이 실패하면 parsed_record만 비어 있는
+// 상태로 200을 돌려준다(파싱은 나중에 재파싱 버튼으로 언제든 다시 채울 수 있다).
+app.put("/admin/sessions/:id/record", async (c) => {
+  const id = c.req.param("id");
+  const session = await getSessionById(c.env.DB, id);
+  if (!session) {
+    return c.json(errorResponse("not_found", "해당 세션을 찾을 수 없습니다."), 404);
+  }
+
+  const body = await c.req
+    .json<{ raw_record?: string }>()
+    .catch(() => ({}) as { raw_record?: string });
+  const rawRecord = (body.raw_record ?? "").trim();
+  if (!rawRecord) {
+    return c.json(errorResponse("validation_error", "raw_record는 비어있을 수 없습니다."), 400);
+  }
+
+  const saved = await upsertRecord(c.env.DB, id, rawRecord);
+
+  try {
+    const parsed = await parseWodRecord(c.env, session.raw_wod, session.class_type, rawRecord);
+    const updated = await updateParsedRecord(c.env.DB, id, JSON.stringify(parsed));
+    return c.json({ record: updated ?? saved }, 200);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "기록 파싱에 실패했습니다.";
+    return c.json({ record: saved, parse_error: message }, 200);
+  }
+});
+
+// POST /api/admin/sessions/:id/record/parse (재파싱)
+app.post("/admin/sessions/:id/record/parse", async (c) => {
+  const id = c.req.param("id");
+  const session = await getSessionById(c.env.DB, id);
+  if (!session) {
+    return c.json(errorResponse("not_found", "해당 세션을 찾을 수 없습니다."), 404);
+  }
+
+  const record = await getRecordBySessionId(c.env.DB, id);
+  if (!record) {
+    return c.json(errorResponse("not_found", "이 세션에 저장된 기록이 없습니다."), 404);
+  }
+
+  let parsed;
+  try {
+    parsed = await parseWodRecord(c.env, session.raw_wod, session.class_type, record.raw_record);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "기록 파싱에 실패했습니다.";
+    return c.json(errorResponse("llm_error", message), 502);
+  }
+
+  const updated = await updateParsedRecord(c.env.DB, id, JSON.stringify(parsed));
+  return c.json({ record: updated }, 200);
+});
+
+// DELETE /api/admin/sessions/:id/record (기록 삭제)
+app.delete("/admin/sessions/:id/record", async (c) => {
+  const deleted = await deleteRecord(c.env.DB, c.req.param("id"));
+  if (!deleted) {
+    return c.json(errorResponse("not_found", "이 세션에 저장된 기록이 없습니다."), 404);
+  }
+  return c.body(null, 204);
 });
 
 // DELETE /api/admin/sessions/:id (세션 삭제)

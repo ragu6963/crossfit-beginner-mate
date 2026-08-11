@@ -1,4 +1,4 @@
-import type { WodSession } from "./types";
+import type { WodRecord, WodSession } from "./types";
 
 export interface SessionInput {
   date: string;
@@ -111,6 +111,84 @@ export async function updateParsedGuide(
 export async function deleteSession(db: D1Database, id: string): Promise<boolean> {
   const existing = await getSessionById(db, id);
   if (!existing) return false;
+  // wod_records에 ON DELETE CASCADE를 걸어두었지만, 외래키 강제 여부에 의존하지 않도록 명시적으로 지운다.
+  await db.prepare("DELETE FROM wod_records WHERE session_id = ?").bind(id).run();
   await db.prepare("DELETE FROM wod_sessions WHERE id = ?").bind(id).run();
+  return true;
+}
+
+// ---------------------------------------------------------------------------
+// 개인 기록(wod_records)
+// ---------------------------------------------------------------------------
+
+export async function getRecordBySessionId(
+  db: D1Database,
+  sessionId: string,
+): Promise<WodRecord | null> {
+  const row = await db
+    .prepare("SELECT * FROM wod_records WHERE session_id = ?")
+    .bind(sessionId)
+    .first<WodRecord>();
+  return row ?? null;
+}
+
+// 원본을 먼저 확정 저장한다. 이후 LLM 파싱이 실패하더라도 운동 직후 입력한 기록이 사라지지 않게
+// 하기 위한 것이며, 원본이 바뀌면 기존 파싱 결과는 더 이상 유효하지 않으므로 NULL로 비운다.
+export async function upsertRecord(
+  db: D1Database,
+  sessionId: string,
+  rawRecord: string,
+): Promise<WodRecord> {
+  const existing = await getRecordBySessionId(db, sessionId);
+  const now = new Date().toISOString();
+
+  if (existing) {
+    await db
+      .prepare("UPDATE wod_records SET raw_record = ?, parsed_record = NULL, updated_at = ? WHERE id = ?")
+      .bind(rawRecord, now, existing.id)
+      .run();
+    return { ...existing, raw_record: rawRecord, parsed_record: null, updated_at: now };
+  }
+
+  const id = crypto.randomUUID();
+  await db
+    .prepare(
+      `INSERT INTO wod_records (id, session_id, raw_record, parsed_record, created_at, updated_at)
+       VALUES (?, ?, ?, NULL, ?, ?)`,
+    )
+    .bind(id, sessionId, rawRecord, now, now)
+    .run();
+
+  return {
+    id,
+    session_id: sessionId,
+    raw_record: rawRecord,
+    parsed_record: null,
+    created_at: now,
+    updated_at: now,
+  };
+}
+
+export async function updateParsedRecord(
+  db: D1Database,
+  sessionId: string,
+  parsedRecordJson: string,
+): Promise<WodRecord | null> {
+  const existing = await getRecordBySessionId(db, sessionId);
+  if (!existing) return null;
+
+  const now = new Date().toISOString();
+  await db
+    .prepare("UPDATE wod_records SET parsed_record = ?, updated_at = ? WHERE id = ?")
+    .bind(parsedRecordJson, now, existing.id)
+    .run();
+
+  return { ...existing, parsed_record: parsedRecordJson, updated_at: now };
+}
+
+export async function deleteRecord(db: D1Database, sessionId: string): Promise<boolean> {
+  const existing = await getRecordBySessionId(db, sessionId);
+  if (!existing) return false;
+  await db.prepare("DELETE FROM wod_records WHERE session_id = ?").bind(sessionId).run();
   return true;
 }

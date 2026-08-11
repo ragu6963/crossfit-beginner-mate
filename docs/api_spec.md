@@ -1,6 +1,8 @@
 # CRUD API 명세서
 
-`prd.md`의 `wod_sessions` 스키마 및 인증 정책을 기준으로 정의합니다. 관리자용 조회 API는 별도로 두지 않고 공개 조회 API를 재사용하며, 쓰기 작업(생성/수정/삭제)만 인증으로 보호합니다.
+`prd.md`의 `wod_sessions` 스키마 및 인증 정책을 기준으로 정의합니다. 세션 조회는 관리자용 API를 별도로 두지 않고 공개 조회 API를 재사용하며, 쓰기 작업(생성/수정/삭제)만 인증으로 보호합니다.
+
+**단, 개인 기록(`wod_records`)은 예외입니다.** 관리자 본인만 보는 데이터이므로 공개 조회 API에 절대 싣지 않고, 인증이 필요한 전용 엔드포인트(9~12번)로만 조회합니다.
 
 ## 공통 규칙
 
@@ -130,6 +132,40 @@
 **Response 404**: 해당 `id` 없음.
 
 **Response 502**: Gemini API 호출 실패 또는 응답이 예상 스키마와 불일치. `error.message`에 원인 요약 포함.
+
+---
+
+## 9~12. 개인 기록 API (인증 필요)
+
+관리자 본인만 쓰고 보는 개인 와드 기록입니다. **공개 API(`GET /api/wods`)에는 절대 포함되지 않으며**, 아래 관리자 전용 엔드포인트로만 접근합니다. 기록은 세션당 1건입니다.
+
+`wod_records`는 `raw_record`(내가 적은 원본)와 `parsed_record`(LLM 구조화 JSON)를 함께 저장합니다 — `wod_sessions`의 `raw_wod`/`parsed_guide`와 같은 패턴입니다. 원본을 항상 남기므로 파싱이 틀려도 기록은 보존되고, 규칙이 좋아지면 언제든 다시 파싱할 수 있습니다.
+
+### 9. `GET /api/admin/sessions/:id/record`
+
+**Response 200**: `{ "record": {...} | null }` — 기록이 없으면 `record`는 `null`입니다(404 아님).
+
+### 10. `PUT /api/admin/sessions/:id/record`
+
+Request Body: `{ "raw_record": "타임캡 8분, 버피 5개 남김. 클린은 60kg으로 낮춤" }` (자유 텍스트 한 줄)
+
+**원본 저장과 LLM 파싱을 분리한 것이 이 API의 핵심입니다.** 원본을 먼저 커밋한 뒤 파싱하므로, Gemini 호출이 실패해도 운동 직후 입력한 기록은 사라지지 않습니다.
+
+**Response 200**: `{ "record": {...} }`. 파싱에 실패한 경우에도 **200**이며 `{ "record": {...}, "parse_error": "..." }` 형태로 원본 저장 결과와 실패 사유를 함께 반환합니다(`parsed_record`는 `null`). 이때는 11번 API로 재시도합니다.
+
+**Response 400**: `raw_record`가 비어 있음. **Response 404**: 해당 세션 없음.
+
+### 11. `POST /api/admin/sessions/:id/record/parse`
+
+저장된 `raw_record`를 다시 파싱합니다. 파싱이 틀렸을 때 고치는 대상은 구조화 JSON이 아니라 원문이며, 원문을 고쳐 10번으로 다시 저장하거나 규칙 개선 후 이 API로 재해석합니다.
+
+**Response 200**: `{ "record": {...} }`. **Response 404**: 세션 또는 기록 없음. **Response 502**: Gemini 호출/검증 실패.
+
+### 12. `DELETE /api/admin/sessions/:id/record`
+
+**Response 204**: 삭제 성공. **Response 404**: 기록 없음.
+
+> 세션을 삭제하면(7번) 해당 세션의 기록도 함께 삭제됩니다.
 
 ---
 
