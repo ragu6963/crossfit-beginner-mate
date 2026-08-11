@@ -17,7 +17,9 @@ const RECORD_TEMPERATURE = 0;
 // 흔한데, v1은 세션당 스코어 하나만 담을 수 있어 한쪽이 통째로 버려졌다.
 // v3: score_type에 unscored를 추가했다. v2는 수치 스코어가 있는 파트만 담아서, "가중 풀업은
 // 못해서 밴드로 대체"처럼 수행 사실과 스케일링만 적힌 파트가 unmatched_text로 버려졌다.
-export const RECORD_PARSER_VERSION = 3;
+// v4: 미완료를 기록에 명시했는데도 needs_review가 계속 붙던 문제를 고쳤다(경고가 상시 표시되면
+// 경고를 읽지 않게 된다). score_display 길이 제한도 함께 넣었다.
+export const RECORD_PARSER_VERSION = 4;
 
 // "unscored"는 그 파트를 수행하긴 했지만 수치 스코어가 남지 않은 경우다(예: 가중 풀업을 밴드
 // 보조로 대체해서 중량이 없음). 이 값이 없던 v2에서는 해당 파트가 파트로 잡히지 못하고
@@ -87,7 +89,11 @@ const PART_SCHEMA = {
     // 타입에 해당하는 필드만 채운다. 하나의 다형 필드(score_primary)로 합치면 단위가 매번 흔들려서,
     // 타입별로 이름과 단위가 고정된 별도 필드로 나눴다.
     score_seconds: { type: "INTEGER" },
-    score_reps: { type: "INTEGER" },
+    score_reps: {
+      type: "INTEGER",
+      description:
+        "총 반복 횟수. reps 타입이거나, sets 타입에서 세트별 횟수의 합계를 알 수 있으면 그 합계를 넣는다. 해당 없으면 0.",
+    },
     score_rounds: { type: "INTEGER" },
     score_load: { type: "NUMBER" },
     score_load_unit: { type: "STRING", enum: ["kg", "lb"] },
@@ -109,7 +115,7 @@ const PART_SCHEMA = {
     laps_movement: {
       type: "STRING",
       description:
-        "laps의 숫자가 어떤 동작의 횟수·시간인지(예: 'Burpee pull up'). 기록이나 와드 원문에서 알 수 있으면 반드시 채운다.",
+        "laps의 숫자가 어떤 동작의 횟수·시간인지(예: 'Burpee pull up'). 기록이나 와드 원문에서 알 수 있으면 반드시 채운다. laps가 비어 있거나 어떤 동작인지 알 수 없을 때만 빈 문자열.",
     },
     movements: {
       type: "ARRAY",
@@ -143,9 +149,12 @@ const PART_SCHEMA = {
     "movements",
     "rx_level",
     "capped",
-    // 선택 필드로 두면 모델이 조용히 비워버려서(실측으로 확인) unmatched_text로 정보가 새어 나간다.
-    // 반드시 판단해야 하는 값은 required로 강제하고, 해당 없을 때의 기본값을 description에 못박는다.
+    // 선택 필드로 두면 모델이 조용히 비워버려서(실측으로 확인) 정보가 새거나 실행마다 값이
+    // 들쭉날쭉해진다. 반드시 판단해야 하는 값은 required로 강제하고, 해당 없을 때의 기본값을
+    // description에 못박는다. score_reps/laps_movement도 같은 이유로 여기에 있다.
     "reps_remaining",
+    "score_reps",
+    "laps_movement",
   ],
 } as const;
 
@@ -196,7 +205,7 @@ score_type은 **와드 원문의 구조만으로** 정한다. 내 기록이 어�
 6. distance — 거리나 칼로리를 재는 경우.
 
 # 값 규칙
-- score_display는 사람이 읽을 요약이며 기록 원문의 표기를 최대한 살린다(예: "5:42", "4R+12", "75kg", "48/45/47/47").
+- score_display는 사람이 읽을 요약이며 기록 원문의 표기를 최대한 살린다(예: "5:42", "4R+12", "75kg", "48/45/47/47"). 화면에서 배지 하나로 표시되므로 **15자 이내로 짧게** 쓰고, 자세한 내용은 scaling_detail 등 전용 필드에 넣는다(unscored 파트도 "밴드 보조로 대체"처럼 짧게).
 - 시간은 초로 환산해 score_seconds에 넣는다("5:42"→342, "1:02:30"→3750). 타입이 sets면 세트별 시간은 laps[].time_sec에 넣는다.
 - score_rounds(라운드 수), score_load(중량)는 해당 타입일 때만 채운다. score_reps(총 횟수)는 reps 타입일 때뿐 아니라 **sets 타입에서 세트별 횟수의 합계를 알 수 있으면 그 합계를 채운다**(나중에 세션 간 비교에 쓴다).
 - laps는 세트/랩별 숫자가 기록에 있을 때만 채운다. index는 1부터 시작한다.
@@ -222,11 +231,13 @@ score_type은 **와드 원문의 구조만으로** 정한다. 내 기록이 어�
 
 # needs_review 판정 (스스로 "애매하다"고 느낄 때가 아니라, 아래 조건에 하나라도 걸리면 기계적으로 true)
 - 기록의 세트/랩 숫자 개수가 와드 원문의 세트 수와 다르다.
-- 기록에 와드 원문에 없는 동작이 등장한다.
+- 기록에 와드 원문에 없는 동작이 등장하는데, 그것이 대체 동작이라는 설명이 없다.
+  (스케일링으로 대체한 동작은 원래 와드에 없는 게 당연하다. scaling_detail에 담았다면 이 조건에 해당하지 않는다.)
 - 무게 숫자에 단위 표기가 없다.
 - score_type을 1~6 중 하나로 확정할 근거가 와드 원문에 없다.
 - 기록이 너무 짧거나 모호해서 어떤 수치인지 특정할 수 없다.
 - 와드에 완료 기준이 정해져 있는데("Until 60Rep", "For time of", 총 렙 스킴 등) 기록의 합계가 그에 미치지 못하고, 완주했는지 중간에 끝났는지 기록만으로 알 수 없다.
+  단, 기록에 "다 못했다", "중단", "타임캡" 처럼 미완료가 **명시되어 있으면 이 조건에 해당하지 않는다.** 그 사실은 capped와 reps_remaining으로 이미 표현되므로 needs_review를 올리지 않는다. 확인이 필요 없는 기록에까지 경고가 붙으면 경고 자체를 무시하게 된다.
 - 와드에 파트가 여러 개인데 기록이 일부 파트만 다루고 있어, 나머지 파트를 수행했는지 알 수 없다.
 위에 걸리면 review_reason에 어떤 조건인지 한 문장으로 적는다. 걸리지 않으면 needs_review는 false다.
 

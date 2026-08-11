@@ -10,20 +10,14 @@
   ],
   "cases": [
     {
-      "id": "real-multipart-2026-08-11",
-      "why": "실제로 기록한 와드. 스트렝스 파트와 메트콘이 한 세션에 있고 기록은 메트콘만 다룬다. v1에서는 파트 구분이 없어 한쪽이 통째로 버려졌고, laps 숫자가 무엇의 횟수인지도 남지 않았다",
+      "id": "ambiguous-scaling-attribution",
+      "why": "실제로 처음 적었던 기록. '풀업 대신 Knee up'이 빈 줄로 떨어져 있어 가중 풀업(스트렝스)인지 버피 풀업(메트콘)인지 사람이 봐도 확정할 수 없다. 이런 입력에 특정 파트 분할을 단언하면 문자열에 과적합될 뿐이므로, 보장할 것은 '애매하면 확인 필요로 표시된다' 하나다",
       "class_type": "CF Class",
       "wod": "Find 1Rep max weighted pull up\n\n2Min on / 1Min off, Until 60Rep\n15/12Cal Row\n15 Push up\nMax burpee pull up\n*Adv with vest\n*Target : 12Rep per set",
       "record": "로잉 - 푸시업 - 버피 풀업 기록\n4 / 4 / 3 / 1 / 1 / 2\n\n풀업 대신 Knee up",
       "expect": {
-        "parts_count": 1,
-        "score_type": "sets",
-        "laps_reps": [4, 4, 3, 1, 1, 2],
-        "score_reps": 15,
-        "rx_level": "scaled",
         "needs_review": true
-      },
-      "expect_present": ["laps_movement", "scaling_detail"]
+      }
     },
     {
       "id": "real-unscored-strength-2026-08-11",
@@ -41,6 +35,21 @@
         "needs_review": true
       },
       "expect_present": ["scaling_detail", "p2.laps_movement", "p2.scaling_detail"]
+    },
+    {
+      "id": "real-explicit-incomplete-2026-08-11",
+      "why": "앞 케이스에 '총 60 Rep 수행하지 못함'을 덧붙인 버전. 미완료를 명시했으면 capped/reps_remaining으로 표현되므로 needs_review는 내려가야 한다. 확인이 필요 없는 기록에까지 경고가 붙으면 경고를 무시하게 된다",
+      "class_type": "CF Class",
+      "wod": "Find 1Rep max weighted pull up\n\n2Min on / 1Min off, Until 60Rep\n15/12Cal Row\n15 Push up\nMax burpee pull up\n*Adv with vest\n*Target : 12Rep per set",
+      "record": "가중 풀업은 못해서 보라색 밴드로 대체\n\n로잉 - 푸시업 - 버피 풀업 기록\n랩당 12회 수행이 안되어서 가능한 만큼 수행하고, 총 60 Rep 수행하지 못함.\n풀업대신 knee up 수행\n4 / 4 / 3 / 1 / 1 / 2",
+      "expect": {
+        "parts_count": 2,
+        "score_type": "unscored",
+        "p2.score_type": "sets",
+        "p2.laps_reps": [4, 4, 3, 1, 1, 2],
+        "p2.capped": true,
+        "needs_review": false
+      }
     },
     {
       "id": "multipart-both-recorded",
