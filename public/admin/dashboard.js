@@ -165,6 +165,39 @@ function formatSeconds(sec) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+function renderRecordPartHtml(part, showLabel) {
+  const badges = [];
+  if (part.score_display) badges.push(`<span class="record-badge record-badge-score">${Shared.escapeHtml(part.score_display)}</span>`);
+  if (SCORE_TYPE_LABELS[part.score_type]) badges.push(`<span class="record-badge">${SCORE_TYPE_LABELS[part.score_type]}</span>`);
+  if (part.rx_level === "rx") badges.push(`<span class="record-badge">Rx</span>`);
+  if (part.rx_level === "scaled") badges.push(`<span class="record-badge">스케일</span>`);
+  if (part.capped) badges.push(`<span class="record-badge">타임캡${part.reps_remaining ? ` · ${part.reps_remaining}개 남음` : ""}</span>`);
+
+  const lapsHtml = (part.laps || [])
+    .map((l) => {
+      const value =
+        typeof l.reps === "number"
+          ? `${l.reps}회`
+          : typeof l.time_sec === "number"
+            ? formatSeconds(l.time_sec)
+            : typeof l.load === "number"
+              ? `${l.load}${part.score_load_unit ?? ""}`
+              : "-";
+      return `<span class="record-lap"><b>${l.index}</b> ${Shared.escapeHtml(String(value))}</span>`;
+    })
+    .join("");
+
+  return `
+    <div class="record-part">
+      ${showLabel && part.label ? `<div class="record-part-label">${Shared.escapeHtml(part.label)}</div>` : ""}
+      <div class="record-badges">${badges.join("")}</div>
+      ${part.laps_movement ? `<p class="record-detail">${Shared.escapeHtml(part.laps_movement)}</p>` : ""}
+      ${lapsHtml ? `<div class="record-laps">${lapsHtml}</div>` : ""}
+      ${part.scaling_detail ? `<p class="record-detail">스케일링: ${Shared.escapeHtml(part.scaling_detail)}</p>` : ""}
+    </div>
+  `;
+}
+
 function renderParsedRecordHtml(parsedRecordRaw) {
   if (!parsedRecordRaw) return "";
 
@@ -175,28 +208,14 @@ function renderParsedRecordHtml(parsedRecordRaw) {
     return "";
   }
 
-  const badges = [];
-  if (p.score_display) badges.push(`<span class="record-badge record-badge-score">${Shared.escapeHtml(p.score_display)}</span>`);
-  if (SCORE_TYPE_LABELS[p.score_type]) badges.push(`<span class="record-badge">${SCORE_TYPE_LABELS[p.score_type]}</span>`);
-  if (p.rx_level === "rx") badges.push(`<span class="record-badge">Rx</span>`);
-  if (p.rx_level === "scaled") badges.push(`<span class="record-badge">스케일</span>`);
-  if (p.capped) badges.push(`<span class="record-badge">타임캡${p.reps_remaining ? ` · ${p.reps_remaining}개 남음` : ""}</span>`);
-  if (p.is_team) badges.push(`<span class="record-badge">팀</span>`);
-  if (p.rpe) badges.push(`<span class="record-badge">RPE ${p.rpe}${p.rpe_inferred ? " (추정)" : ""}</span>`);
+  // parser_version 1은 파트 개념이 없는 평면 구조였다. 원본이 남아 있어 재파싱하면 되지만,
+  // 재파싱 전에 열어봐도 깨지지 않도록 단일 파트로 감싸서 같은 경로로 렌더링한다.
+  const parts = Array.isArray(p.parts) ? p.parts : [p];
+  const showLabel = parts.length > 1;
 
-  const lapsHtml = (p.laps || [])
-    .map((l) => {
-      const value =
-        typeof l.reps === "number"
-          ? `${l.reps}회`
-          : typeof l.time_sec === "number"
-            ? formatSeconds(l.time_sec)
-            : typeof l.load === "number"
-              ? `${l.load}${p.score_load_unit ?? ""}`
-              : "-";
-      return `<span class="record-lap"><b>${l.index}</b> ${Shared.escapeHtml(String(value))}</span>`;
-    })
-    .join("");
+  const sessionBadges = [];
+  if (p.is_team) sessionBadges.push(`<span class="record-badge">팀</span>`);
+  if (p.rpe) sessionBadges.push(`<span class="record-badge">RPE ${p.rpe}${p.rpe_inferred ? " (추정)" : ""}</span>`);
 
   // 아래 두 줄이 사실상의 검토 장치다. 크로스핏 지식이 없어도 "내가 실제로 한 것과 다른가"만
   // 보면 되도록, 해석이 미심쩍은 부분과 아예 반영되지 않은 원문 조각을 눈에 띄게 노출한다.
@@ -210,9 +229,8 @@ function renderParsedRecordHtml(parsedRecordRaw) {
 
   return `
     <div class="record-parsed">
-      <div class="record-badges">${badges.join("")}</div>
-      ${lapsHtml ? `<div class="record-laps">${lapsHtml}</div>` : ""}
-      ${p.scaling_detail ? `<p class="record-detail">스케일링: ${Shared.escapeHtml(p.scaling_detail)}</p>` : ""}
+      ${parts.map((part) => renderRecordPartHtml(part, showLabel)).join("")}
+      ${sessionBadges.length ? `<div class="record-badges">${sessionBadges.join("")}</div>` : ""}
       ${warnings.map((w) => `<p class="record-warning">${w}</p>`).join("")}
     </div>
   `;

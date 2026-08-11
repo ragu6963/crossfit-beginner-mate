@@ -10,6 +10,37 @@
   ],
   "cases": [
     {
+      "id": "real-multipart-2026-08-11",
+      "why": "실제로 기록한 와드. 스트렝스 파트와 메트콘이 한 세션에 있고 기록은 메트콘만 다룬다. v1에서는 파트 구분이 없어 한쪽이 통째로 버려졌고, laps 숫자가 무엇의 횟수인지도 남지 않았다",
+      "class_type": "CF Class",
+      "wod": "Find 1Rep max weighted pull up\n\n2Min on / 1Min off, Until 60Rep\n15/12Cal Row\n15 Push up\nMax burpee pull up\n*Adv with vest\n*Target : 12Rep per set",
+      "record": "로잉 - 푸시업 - 버피 풀업 기록\n4 / 4 / 3 / 1 / 1 / 2\n\n풀업 대신 Knee up",
+      "expect": {
+        "parts_count": 1,
+        "score_type": "sets",
+        "laps_reps": [4, 4, 3, 1, 1, 2],
+        "score_reps": 15,
+        "rx_level": "scaled",
+        "needs_review": true
+      },
+      "expect_present": ["laps_movement", "scaling_detail"]
+    },
+    {
+      "id": "multipart-both-recorded",
+      "why": "두 파트를 모두 기록하면 parts가 2개로 나뉘고, 파트별로 score_type이 따로 판정되어야 한다(스트렝스=load, 메트콘=sets)",
+      "class_type": "CF Class",
+      "wod": "Find 1Rep max weighted pull up\n\n2Min on / 1Min off, Until 60Rep\n15/12Cal Row\n15 Push up\nMax burpee pull up\n*Adv with vest\n*Target : 12Rep per set",
+      "record": "웨이티드 풀업 16kg 성공\n버피 풀업 4 / 4 / 3 / 1 / 1 / 2",
+      "expect": {
+        "parts_count": 2,
+        "score_type": "load",
+        "score_load": 16,
+        "score_load_unit": "kg",
+        "p2.score_type": "sets",
+        "p2.laps_reps": [4, 4, 3, 1, 1, 2]
+      }
+    },
+    {
       "id": "interval-sets-reps",
       "why": "인터벌 구조는 time이 아니라 sets로 판정되고, 세트별 횟수가 laps에 들어가야 한다",
       "class_type": "CF Class",

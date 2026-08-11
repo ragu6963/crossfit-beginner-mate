@@ -34,12 +34,31 @@ if (cases.length === 0) {
   process.exit(1);
 }
 
-// expect의 키는 파싱 결과의 필드명과 1:1이 아니다. laps 안의 값을 꺼내 비교하는 별칭을 둔다.
+// expect의 키는 파싱 결과의 필드명과 1:1이 아니다.
+//   parts_count        → 파트 개수
+//   p2.<key>, p3.<key> → 2번째/3번째 파트의 값 (접두사 없으면 첫 번째 파트)
+//   laps_reps 등       → 해당 파트 laps 안의 값을 배열로 꺼낸다
+//   rpe/is_team 등     → 최상위 필드는 파트가 아니라 결과 루트에서 찾는다
+const ROOT_KEYS = ["rpe", "rpe_inferred", "is_team", "needs_review", "review_reason", "unmatched_text"];
+
 function actualFor(key: string, parsed: any): unknown {
-  if (key === "laps_reps") return parsed.laps?.map((l: any) => l.reps);
-  if (key === "laps_time_sec") return parsed.laps?.map((l: any) => l.time_sec);
-  if (key === "laps_load") return parsed.laps?.map((l: any) => l.load);
-  return parsed[key];
+  if (key === "parts_count") return parsed.parts?.length;
+
+  let partIndex = 0;
+  const prefixed = key.match(/^p(\d+)\.(.+)$/);
+  if (prefixed) {
+    partIndex = Number(prefixed[1]) - 1;
+    key = prefixed[2];
+  }
+
+  if (!prefixed && ROOT_KEYS.includes(key)) return parsed[key];
+
+  const part = parsed.parts?.[partIndex];
+  if (!part) return undefined;
+  if (key === "laps_reps") return part.laps?.map((l: any) => l.reps);
+  if (key === "laps_time_sec") return part.laps?.map((l: any) => l.time_sec);
+  if (key === "laps_load") return part.laps?.map((l: any) => l.load);
+  return part[key];
 }
 
 function eq(a: unknown, b: unknown): boolean {
@@ -72,7 +91,8 @@ for (const c of cases) {
       }
     }
     for (const key of c.expect_present ?? []) {
-      if (parsed[key] === undefined || parsed[key] === "") {
+      const got = actualFor(key, parsed);
+      if (got === undefined || got === "") {
         const msg = `${key}: 값이 있어야 하는데 비어 있음`;
         if (!failures.includes(msg)) failures.push(msg);
       }

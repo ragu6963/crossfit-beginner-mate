@@ -413,6 +413,20 @@ textarea:focus-visible {
   margin-top: var(--space-sm);
 }
 
+/* 와드가 여러 파트(스트렝스 + 메트콘 등)로 나뉘면 파트별로 결과를 보여준다. 파트가 하나뿐이면
+   제목 없이 배지만 나오므로 아래 여백만 적용된다. */
+.record-part + .record-part {
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-hairline);
+}
+
+.record-part-label {
+  font-size: 13px;
+  color: var(--color-ink-muted-48);
+  margin-bottom: var(--space-xxs);
+}
+
 .record-badges {
   display: flex;
   flex-wrap: wrap;
