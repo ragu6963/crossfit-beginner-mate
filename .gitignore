@@ -2,3 +2,6 @@ node_modules/
 .wrangler/
 .dev.vars
 .claude
+
+# 골든 테스트의 Gemini 응답 캐시. 요청 본문 해시가 키라서 프롬프트를 고치면 자동으로 무효화된다.
+tests/.cache/

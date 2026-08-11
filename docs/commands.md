@@ -42,6 +42,26 @@ npm run dev
 Get-CimInstance Win32_Process -Filter "Name='node.exe'" | Where-Object { $_.CommandLine -match 'wrangler' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
 ```
 
+## 기록 파싱 회귀 테스트
+
+```bash
+npm run test:records                 # 전체 케이스
+npm run test:records -- template     # id에 "template"이 들어간 케이스만
+npm run test:records -- --repeat 3   # 같은 케이스를 3회씩 돌려 흔들림 확인
+npm run test:records -- --no-cache   # 캐시를 무시하고 전부 실제 호출
+```
+
+`tests/golden-records.json`의 케이스를 `src/records.ts` 파서에 통과시켜, 프롬프트 규칙을 고쳤을 때 기존 케이스가 깨지지 않는지 확인합니다. 실제로 규칙 하나를 고쳤다가 무관해 보이던 케이스 2개가 깨진 적이 있어(`load` vs `sets` 우선순위 모순) 이 스위트 없이 프롬프트를 수정하는 것은 위험합니다.
+
+**실제 Gemini를 호출하므로 시간·토큰 소모가 큽니다.** 아래를 지켜서 씁니다.
+
+- **응답 캐시가 기본입니다.** 요청 본문(프롬프트+스키마+temperature) 해시로 캐싱하므로, 프롬프트를 건드리지 않은 변경에서는 API 호출이 **0회**로 끝납니다(17케이스 기준 38초 → 0.6초). 프롬프트를 고치면 해시가 바뀌어 자동으로 무효화되니 캐시가 낡을 걱정은 없습니다. 캐시는 `tests/.cache/`에 쌓이고 커밋되지 않습니다.
+- 주석·UI 문구·CSS처럼 **파싱 동작과 무관한 변경에는 아예 돌리지 않습니다.** `npm run typecheck`로 충분합니다.
+- `--repeat`은 캐시를 우회합니다(같은 응답을 N번 읽으면 흔들림 검사가 무의미하므로). 케이스 수 × N회를 그대로 호출하니 흔들림을 조사할 때만 씁니다.
+- 실패하면 화면에는 어긋난 필드만 나오고, 파싱 결과 전문은 `tests/.cache/last-failures.json`에 저장됩니다.
+
+`--repeat`이 중요한 이유: 1회 실행에서 10/10 통과했던 규칙 수정이 3회 반복에서 8/10으로 떨어진 적이 있습니다. **단발 통과는 통과가 아닙니다** — 파서 버전을 올리는 수준의 변경에서는 반드시 반복 실행으로 확인합니다.
+
 ## 타입 체크
 
 ```bash
