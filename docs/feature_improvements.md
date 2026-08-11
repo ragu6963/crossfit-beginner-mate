@@ -20,4 +20,4 @@
 
 - **자동화 테스트 부재**: 현재 검증은 `docs/commands.md`의 curl 예시나 수동 `wrangler pages dev` 스모크 테스트에 의존합니다. API 레벨 최소 테스트(예: `POST /api/admin/sessions` 검증 실패/중복/성공 케이스)만 추가해도 회귀를 조기에 잡을 수 있습니다.
 - **GitHub Actions로 typecheck 자동화**: 저장소가 이번에 GitHub에 연결됐으니, PR/push 시 `npm run typecheck`를 자동 실행하는 워크플로를 추가하면 좋습니다. `development_report.md`에 이미 "CI/CD 미구성"으로 기록돼 있지만, 지금이 착수하기 좋은 시점이라 다시 짚어둡니다.
-- **Cloudflare Pages Git 연동 미설정**: 현재 배포는 `wrangler pages deploy`로 로컬에서 직접 업로드하는 방식입니다. 대시보드에서 GitHub 저장소를 연결하면 `main` push마다 자동 배포되어, 매번 CLI를 실행할 필요가 없어집니다.
+- **~~Cloudflare Pages Git 연동~~ (검토 후 채택하지 않음, 2026-08-11)**: 실제로는 Pages 프로젝트에 GitHub 연동이 **이미 켜져 있었고, 모든 push에서 빌드가 Failure로 끝나고 있었습니다**(`9355045`, `11be9a2`, `e145fe4`, `c84479a` 전부 동일). 서비스가 정상이었던 이유는 매번 로컬에서 `wrangler pages deploy`로 직접 업로드했기 때문이며, 커밋마다 실패 배포 1건 + 수동 배포 1건이 쌓이는 상태였습니다. 자동 배포의 이점보다 실패 알림이 계속 쌓이는 비용이 커서, **연동을 해제하고 수동 배포(direct upload)를 공식 절차로 확정**했습니다. 배포 절차는 [`commands.md`](./commands.md#배포)를 참고하세요.

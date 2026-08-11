@@ -81,22 +81,52 @@ curl -b cookies.txt -X POST http://127.0.0.1:8788/api/admin/sessions \
 
 전체 엔드포인트 명세는 [`docs/api_spec.md`](./api_spec.md)를 참고합니다.
 
-## 배포 (참고 — 이번 MVP 범위에는 미포함)
+## 배포
+
+**이 프로젝트는 로컬에서 직접 업로드하는 수동 배포(direct upload)를 공식 절차로 사용합니다.** Cloudflare Pages의 GitHub 연동 빌드는 사용하지 않습니다(아래 "왜 수동 배포인가" 참고). 따라서 **GitHub에 push하는 것만으로는 배포되지 않으며**, 아래 명령을 반드시 실행해야 프로덕션에 반영됩니다.
+
+프로덕션: https://crossfit-beginner-mate.pages.dev
 
 ```bash
-# Cloudflare에 실제 D1 데이터베이스 생성 (최초 1회, wrangler.toml의 database_id를 결과값으로 교체해야 함)
+# 0. 배포 전 확인
+npm run typecheck
+git status            # 배포는 현재 로컬 디렉토리 내용을 그대로 올린다. 커밋/푸시된 상태에서 실행할 것
+
+# 1. 마이그레이션이 추가된 경우에만 (migrations/ 에 새 파일이 있을 때)
+npm run db:migrate:remote
+
+# 2. Pages 배포 (wrangler.toml의 pages_build_output_dir=public 을 사용하므로 경로 인자 불필요)
+npx wrangler pages deploy --branch main
+```
+
+배포 후 확인:
+
+```bash
+npx wrangler pages deployment list --project-name crossfit-beginner-mate   # 최신 항목의 Source가 방금 커밋 해시인지 확인
+curl -s -o /dev/null -w "%{http_code}\n" https://crossfit-beginner-mate.pages.dev/
+```
+
+정적 에셋(`public/*.js`, `*.css`)은 엣지 캐시 때문에 배포 직후 잠시 이전 버전이 응답할 수 있습니다. 반영 여부를 확인할 때는 쿼리스트링으로 캐시를 우회하세요: `curl -s "https://crossfit-beginner-mate.pages.dev/shared.js?v=$(date +%s)"`.
+
+### 최초 1회만 필요한 설정
+
+```bash
+# Cloudflare에 실제 D1 데이터베이스 생성 (wrangler.toml의 database_id를 결과값으로 교체해야 함)
 npx wrangler d1 create crossfit_beginner_mate
 
 # 시크릿 등록 (JWT_SECRET, ADMIN_PASSWORD, GEMINI_API_KEY는 코드/설정 파일에 직접 넣지 않음)
 npx wrangler secret put JWT_SECRET
 npx wrangler secret put ADMIN_PASSWORD
 npx wrangler secret put GEMINI_API_KEY
-
-# Pages 배포
-npx wrangler pages deploy public
 ```
 
-CI/CD 자동화(GitHub Actions 등)는 아직 구성하지 않았습니다(`prd.md` MVP 범위 참고).
+### 왜 수동 배포인가 (2026-08-11 결정)
+
+Pages 프로젝트에 GitHub 연동이 켜져 있던 시기에 **모든 push의 자동 빌드가 Failure로 끝났습니다**(`9355045`, `11be9a2`, `e145fe4`, `c84479a` 전부). 서비스가 정상으로 보였던 것은 매번 수동 배포로 덮어썼기 때문이고, 커밋마다 실패 배포 1건이 이력에 쌓이고 있었습니다. 자동 배포의 이점보다 실패 알림/이력 오염 비용이 커서 연동을 해제하고 수동 배포로 확정했습니다.
+
+**주의:** Git 연동 해제는 wrangler CLI로 할 수 없습니다(`wrangler pages project`에는 `list/create/delete`만 존재). 대시보드 → 프로젝트 → Settings → Builds & deployments에서만 가능하며, `wrangler pages project delete`는 프로덕션 도메인·시크릿·D1 바인딩까지 함께 삭제하므로 연동 해제 목적으로 절대 사용하지 마세요.
+
+GitHub Actions 등 CI/CD 자동화는 여전히 구성하지 않았습니다(`prd.md` MVP 범위 참고).
 
 ## 관련 문서
 
