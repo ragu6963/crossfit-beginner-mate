@@ -403,6 +403,12 @@ textarea:focus-visible {
 
 /* 같은 상세 패널 안의 관리자 액션 행(.detail-admin-actions)과 같은 리듬으로 보이도록 gap을 맞춘다.
    구분선은 두지 않는다 — 이미 guide-section 안에 들어 있어 위쪽에 선이 하나 더 생기면 과해진다. */
+.record-hint {
+  margin: var(--space-xxs) 0 0;
+  font-size: 13px;
+  color: var(--color-ink-muted-48);
+}
+
 .record-actions {
   display: flex;
   gap: var(--space-sm);

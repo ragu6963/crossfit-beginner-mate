@@ -19,7 +19,9 @@ const RECORD_TEMPERATURE = 0;
 // 못해서 밴드로 대체"처럼 수행 사실과 스케일링만 적힌 파트가 unmatched_text로 버려졌다.
 // v4: 미완료를 기록에 명시했는데도 needs_review가 계속 붙던 문제를 고쳤다(경고가 상시 표시되면
 // 경고를 읽지 않게 된다). score_display 길이 제한도 함께 넣었다.
-export const RECORD_PARSER_VERSION = 4;
+// v5: 기록을 빈 화면이 아니라 입력 뼈대(record-template.ts) 위에 쓰게 되면서, 채워지지 않은
+// 항목이 그대로 저장된다. 빈 항목을 "언급됨"으로 보면 유령 파트가 생기므로 무시하도록 했다.
+export const RECORD_PARSER_VERSION = 5;
 
 // "unscored"는 그 파트를 수행하긴 했지만 수치 스코어가 남지 않은 경우다(예: 가중 풀업을 밴드
 // 보조로 대체해서 중량이 없음). 이 값이 없던 v2에서는 해당 파트가 파트로 잡히지 못하고
@@ -180,6 +182,12 @@ function buildPrompt(rawWod: string, classType: string, rawRecord: string): stri
   return `당신은 크로스핏 기록 파서입니다. "와드 원문"을 맥락으로 삼아 "내 기록"을 JSON으로 구조화하세요.
 기록은 박스 화이트보드에 적듯 자유롭게 쓰인 짧은 메모입니다. 추측으로 값을 지어내지 말고, 원문에 있는 것만 옮기세요.
 
+# 빈칸 처리 (기록은 미리 채워진 입력 뼈대 위에 작성됩니다)
+기록 입력칸에는 "무게: ", "1세트: ", "스케일링: " 같은 빈칸 서식이 미리 들어가 있고, 사용자는 그중 해당하는 칸만 채웁니다.
+- **값이 비어 있는 항목은 없는 것으로 취급한다.** 그 파트를 수행하지 않았거나 기록하지 않은 것이므로 파트로 만들지 않고, unmatched_text에도 넣지 않는다.
+- 항목 이름만 있고 값이 없는 줄 때문에 파트나 랩을 만들어내면 안 된다. 값이 채워진 항목만 근거로 삼는다.
+- 모든 항목이 비어 있으면 파트를 만들 수 없으므로 needs_review를 true로 하고 review_reason에 값이 비어 있다고 적는다.
+
 # 파트 분리 (가장 먼저 판단한다)
 와드 원문은 성격이 다른 여러 파트로 나뉘는 경우가 많다(예: "Find 1Rep max weighted pull up" 같은 스트렝스 파트 + 인터벌 메트콘, 또는 "Core" + "METCON"). 파트마다 스코어의 성격이 다르므로 각각을 parts 배열에 원문 순서대로 담는다.
 - **기록에 언급된 파트는 모두 담는다.** 수치 스코어가 없어도 수행 사실이나 스케일링·실패가 적혀 있으면 파트로 담고, score_type을 unscored로 둔다(예: "가중 풀업은 못해서 밴드로 대체" → label은 해당 파트, score_type=unscored, rx_level=scaled, scaling_detail에 밴드 대체 내용). 이런 내용을 unmatched_text로 흘려보내면 안 된다.
@@ -239,6 +247,7 @@ score_type은 **와드 원문의 구조만으로** 정한다. 내 기록이 어�
 - 와드에 완료 기준이 정해져 있는데("Until 60Rep", "For time of", 총 렙 스킴 등) 기록의 합계가 그에 미치지 못하고, 완주했는지 중간에 끝났는지 기록만으로 알 수 없다.
   단, 기록에 "다 못했다", "중단", "타임캡" 처럼 미완료가 **명시되어 있으면 이 조건에 해당하지 않는다.** 그 사실은 capped와 reps_remaining으로 이미 표현되므로 needs_review를 올리지 않는다. 확인이 필요 없는 기록에까지 경고가 붙으면 경고 자체를 무시하게 된다.
 - 와드에 파트가 여러 개인데 기록이 일부 파트만 다루고 있어, 나머지 파트를 수행했는지 알 수 없다.
+  단, 입력 뼈대의 항목이 빈칸으로 남아 그 파트가 빠진 경우는 해당하지 않는다(빈칸은 의도적으로 비운 것으로 본다).
 위에 걸리면 review_reason에 어떤 조건인지 한 문장으로 적는다. 걸리지 않으면 needs_review는 false다.
 
 # 와드 원문 (class_type: ${classType})
@@ -292,8 +301,10 @@ export async function parseWodRecord(
     throw new Error("Gemini API 응답이 유효한 JSON이 아닙니다.");
   }
 
-  if (!Array.isArray(parsed.parts) || parsed.parts.length === 0) {
-    throw new Error("Gemini API 응답에 파트가 없습니다.");
+  // 파트가 0개인 것은 오류가 아니다. 입력 뼈대를 한 칸도 채우지 않고 저장하면 담을 파트가 없는 게
+  // 정상이며, 이때는 예외를 던지는 대신 needs_review로 "값이 비어 있다"고 알려주는 편이 낫다.
+  if (!Array.isArray(parsed.parts)) {
+    throw new Error("Gemini API 응답이 예상된 기록 스키마와 일치하지 않습니다.");
   }
   if (parsed.parts.some((p) => typeof p?.score_type !== "string" || !SCORE_TYPES.includes(p.score_type))) {
     throw new Error("Gemini API 응답이 예상된 기록 스키마와 일치하지 않습니다.");
@@ -312,6 +323,10 @@ export async function parseWodRecord(
       capped: p.capped ?? false,
     })),
     is_team: parsed.is_team ?? false,
-    needs_review: parsed.needs_review ?? false,
+    needs_review: parsed.parts.length === 0 ? true : (parsed.needs_review ?? false),
+    review_reason:
+      parsed.parts.length === 0
+        ? (parsed.review_reason ?? "기록에 채워진 값이 없습니다.")
+        : parsed.review_reason,
   };
 }

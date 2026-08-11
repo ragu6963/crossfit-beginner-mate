@@ -52,6 +52,31 @@
       }
     },
     {
+      "id": "template-partially-filled",
+      "why": "기록을 입력 뼈대 위에 쓰게 되면서 채우지 않은 빈 항목이 그대로 저장된다. 빈 항목을 '언급됨'으로 보면 유령 파트가 생기므로, 값이 채워진 파트만 담겨야 한다",
+      "class_type": "CF Class",
+      "wod": "Find 1Rep max weighted pull up\n\n2Min on / 1Min off, Until 60Rep\n15/12Cal Row\n15 Push up\nMax burpee pull up\n*Adv with vest\n*Target : 12Rep per set",
+      "record": "Find 1Rep max weight\n무게: \n\n2Min on / 1Min off, \n세트별 Burpee pull up: 4/4/3/1/1/2\n\n스케일링: 풀업 대신 knee up\n체감: 9",
+      "expect": {
+        "parts_count": 1,
+        "score_type": "sets",
+        "laps_reps": [4, 4, 3, 1, 1, 2],
+        "rx_level": "scaled",
+        "rpe": 9
+      }
+    },
+    {
+      "id": "template-untouched",
+      "why": "뼈대를 하나도 채우지 않고 저장한 경우. 항목 이름만으로 값을 지어내면 안 되고 needs_review가 올라가야 한다",
+      "class_type": "CF Class",
+      "wod": "9-7-5\nClean & jerk (185/125)\nBurpee box jump over (30/24)\n\nTarget : 6:00 Under",
+      "record": "기록(시간): \n\n스케일링: \n체감: ",
+      "expect": {
+        "parts_count": 0,
+        "needs_review": true
+      }
+    },
+    {
       "id": "multipart-both-recorded",
       "why": "두 파트를 모두 기록하면 parts가 2개로 나뉘고, 파트별로 score_type이 따로 판정되어야 한다(스트렝스=load, 메트콘=sets)",
       "class_type": "CF Class",

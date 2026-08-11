@@ -55,11 +55,13 @@
         <textarea
           id="detail-record-input"
           class="record-input"
-          rows="3"
+          rows="8"
           placeholder="예) 5:42 완주 / 토투바는 니레이즈로 대체 / 마지막 라운드 많이 힘들었음"
         ></textarea>
+        <p class="record-hint hidden" id="detail-record-hint">빈칸만 채우면 됩니다. 형식을 벗어나 자유롭게 적어도 됩니다.</p>
         <div class="record-actions">
           <button type="button" class="btn-secondary" id="detail-record-save-btn">기록 저장</button>
+          <button type="button" class="btn-secondary hidden" id="detail-record-tmpl-btn">뼈대 다시</button>
           <button type="button" class="btn-secondary hidden" id="detail-record-reparse-btn">재해석</button>
           <button type="button" class="btn-danger hidden" id="detail-record-delete-btn">기록 삭제</button>
         </div>

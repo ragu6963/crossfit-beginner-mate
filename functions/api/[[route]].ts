@@ -23,6 +23,7 @@ import {
   listSessionsByDate,
   updateParsedGuide,
   updateParsedRecord,
+  updateRecordTemplate,
   updateSession,
   upsertRecord,
   validateSessionInput,
@@ -30,6 +31,7 @@ import {
 } from "../../src/sessions";
 import { generateWodGuide } from "../../src/llm";
 import { parseWodRecord } from "../../src/records";
+import { generateRecordTemplate } from "../../src/record-template";
 
 const app = new Hono<{ Bindings: Env }>().basePath("/api");
 
@@ -169,10 +171,37 @@ app.post("/admin/sessions/:id/guide", async (c) => {
 // 개인 기록 (관리자 전용). 공개 API(/api/wods)에는 절대 노출하지 않는다.
 // ---------------------------------------------------------------------------
 
-// GET /api/admin/sessions/:id/record (기록 조회)
+// GET /api/admin/sessions/:id/record (기록 + 입력 뼈대 조회)
 app.get("/admin/sessions/:id/record", async (c) => {
-  const record = await getRecordBySessionId(c.env.DB, c.req.param("id"));
-  return c.json({ record });
+  const id = c.req.param("id");
+  const [record, session] = await Promise.all([
+    getRecordBySessionId(c.env.DB, id),
+    getSessionById(c.env.DB, id),
+  ]);
+  return c.json({ record, template: session?.record_template ?? null });
+});
+
+// POST /api/admin/sessions/:id/record/template (입력 뼈대 생성/재생성)
+//
+// 기록칸을 열 때마다 LLM을 부르면 매번 몇 초씩 기다려야 하므로, 세션당 한 번 만들어 저장하고
+// 이후에는 저장된 것을 그대로 쓴다. 프론트엔드는 뼈대가 없을 때만 이 API를 호출한다.
+app.post("/admin/sessions/:id/record/template", async (c) => {
+  const id = c.req.param("id");
+  const session = await getSessionById(c.env.DB, id);
+  if (!session) {
+    return c.json(errorResponse("not_found", "해당 세션을 찾을 수 없습니다."), 404);
+  }
+
+  let template: string;
+  try {
+    template = await generateRecordTemplate(c.env, session.raw_wod, session.class_type);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "입력 뼈대 생성에 실패했습니다.";
+    return c.json(errorResponse("llm_error", message), 502);
+  }
+
+  await updateRecordTemplate(c.env.DB, id, template);
+  return c.json({ template }, 200);
 });
 
 // PUT /api/admin/sessions/:id/record (기록 저장 + 즉시 파싱)

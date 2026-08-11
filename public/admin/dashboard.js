@@ -24,6 +24,8 @@ const detailEditBtn = document.getElementById("detail-edit-btn");
 const detailDeleteBtn = document.getElementById("detail-delete-btn");
 
 const recordInput = document.getElementById("detail-record-input");
+const recordHint = document.getElementById("detail-record-hint");
+const recordTmplBtn = document.getElementById("detail-record-tmpl-btn");
 const recordSaveBtn = document.getElementById("detail-record-save-btn");
 const recordReparseBtn = document.getElementById("detail-record-reparse-btn");
 const recordDeleteBtn = document.getElementById("detail-record-delete-btn");
@@ -244,6 +246,9 @@ function applyRecord(record, parseError) {
   recordSaveBtn.textContent = hasRecord ? "기록 수정" : "기록 저장";
   recordReparseBtn.classList.toggle("hidden", !hasRecord);
   recordDeleteBtn.classList.toggle("hidden", !hasRecord);
+  // 뼈대는 아직 기록을 쓰지 않았을 때만 의미가 있다. 저장된 기록을 뼈대로 덮어쓰면 안 된다.
+  recordTmplBtn.classList.toggle("hidden", hasRecord);
+  recordHint.classList.toggle("hidden", hasRecord || !recordInput.value);
 
   if (parseError) {
     // 원본은 저장됐고 해석만 실패한 상태. 기록이 사라진 게 아니라는 점을 분명히 알린다.
@@ -257,6 +262,18 @@ function applyRecord(record, parseError) {
   recordParsedEl.innerHTML = renderParsedRecordHtml(record?.parsed_record);
 }
 
+// 빈 textarea를 마주하면 무엇을 어떻게 적을지 막막해 기록이 잘 안 써진다. 아직 기록이 없으면
+// 와드 구조에 맞춘 빈칸 서식을 미리 채워 넣는다. 뼈대가 없으면 이때 한 번 만들어 세션에 저장한다.
+// 저장 시 "뼈대를 하나도 안 채웠는지" 판단하기 위해 마지막으로 채워 넣은 뼈대를 기억해 둔다.
+let lastFilledTemplate = "";
+
+function fillTemplate(template) {
+  if (!template) return;
+  recordInput.value = template;
+  lastFilledTemplate = template;
+  recordHint.classList.remove("hidden");
+}
+
 async function loadRecord(sessionId) {
   applyRecord(null);
   try {
@@ -266,10 +283,41 @@ async function loadRecord(sessionId) {
     // 응답이 늦게 도착했는데 이미 다른 세션을 열었다면 무시한다.
     if (currentDetailId !== sessionId) return;
     applyRecord(data.record);
+
+    if (data.record) return;
+    if (data.template) {
+      fillTemplate(data.template);
+      return;
+    }
+    // 뼈대 생성은 몇 초 걸리므로 화면을 막지 않고 뒤이어 채운다. 실패해도 빈 입력칸으로 남을 뿐이다.
+    const made = await fetch(`/api/admin/sessions/${sessionId}/record/template`, { method: "POST" });
+    if (!made.ok) return;
+    const tmpl = await made.json();
+    if (currentDetailId === sessionId && !recordInput.value.trim()) fillTemplate(tmpl.template);
   } catch {
-    /* 조회 실패 시 입력칸은 빈 상태로 둔다 */
+    /* 조회/생성 실패 시 입력칸은 빈 상태로 둔다 — 기록 자체는 자유 텍스트로 언제든 쓸 수 있다 */
   }
 }
+
+recordTmplBtn.addEventListener("click", async () => {
+  if (!currentDetailId) return;
+  if (recordInput.value.trim() && !confirm("입력칸 내용을 새 뼈대로 덮어쓰시겠습니까?")) return;
+
+  const sessionId = currentDetailId;
+  await withRecordButtonBusy(recordTmplBtn, "만드는 중...", async () => {
+    try {
+      const res = await fetch(`/api/admin/sessions/${sessionId}/record/template`, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data?.error?.message ?? "입력 뼈대 생성에 실패했습니다.");
+        return;
+      }
+      if (currentDetailId === sessionId) fillTemplate(data.template);
+    } catch {
+      alert("입력 뼈대 생성에 실패했습니다.");
+    }
+  });
+});
 
 async function withRecordButtonBusy(btn, busyText, fn) {
   const original = btn.textContent;
@@ -288,6 +336,11 @@ recordSaveBtn.addEventListener("click", async () => {
   const rawRecord = recordInput.value.trim();
   if (!rawRecord) {
     alert("기록을 입력해주세요.");
+    return;
+  }
+  // 뼈대를 한 칸도 채우지 않고 저장하면 해석할 값이 없어 빈 기록만 남는다. LLM 호출도 낭비다.
+  if (lastFilledTemplate && rawRecord === lastFilledTemplate.trim()) {
+    alert("아직 빈칸을 채우지 않았습니다. 값을 입력한 뒤 저장해주세요.");
     return;
   }
 

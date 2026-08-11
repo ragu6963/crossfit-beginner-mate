@@ -21,6 +21,8 @@ export interface WodSession {
   class_type: string;
   raw_wod: string;
   parsed_guide: string | null;
+  // 기록 입력칸에 미리 채워 넣을 빈칸 서식. 세션당 한 번 생성해 재사용하며, raw_wod가 바뀌면 비운다.
+  record_template: string | null;
   created_at: string;
   updated_at: string;
 }

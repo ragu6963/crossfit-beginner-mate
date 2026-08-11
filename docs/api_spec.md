@@ -143,7 +143,7 @@
 
 ### 9. `GET /api/admin/sessions/:id/record`
 
-**Response 200**: `{ "record": {...} | null }` — 기록이 없으면 `record`는 `null`입니다(404 아님).
+**Response 200**: `{ "record": {...} | null, "template": "..." | null }` — 기록이 없으면 `record`는 `null`입니다(404 아님). `template`은 입력칸에 미리 채워 넣을 빈칸 서식이며, 아직 만들어지지 않았으면 `null`입니다(이때 프론트엔드가 13번을 호출합니다).
 
 ### 10. `PUT /api/admin/sessions/:id/record`
 
@@ -164,6 +164,16 @@ Request Body: `{ "raw_record": "타임캡 8분, 버피 5개 남김. 클린은 60
 ### 12. `DELETE /api/admin/sessions/:id/record`
 
 **Response 204**: 삭제 성공. **Response 404**: 기록 없음.
+
+### 13. `POST /api/admin/sessions/:id/record/template`
+
+기록 입력칸에 미리 채워 넣을 **빈칸 서식**을 생성해 `wod_sessions.record_template`에 저장합니다. 운동 직후 빈 textarea를 마주하면 무엇을 어떻게 적을지 막막해 기록이 잘 안 써진다는 실사용 피드백에서 나왔습니다.
+
+LLM은 **파트 분리와 파트별 `score_type` 판정만** 담당하고(기록 파서와 같은 분류를 공유), 실제 서식 문자열은 코드가 조립합니다. LLM에 서식까지 맡겼을 때 9-7-5 For Time(완주 시간 하나가 스코어)에 "1라운드/2라운드/3라운드" 칸이 생기는 문제가 있었습니다 — **잘못된 뼈대는 빈 화면보다 나쁩니다.** 없는 기록을 적게 만들기 때문입니다.
+
+세션당 한 번 만들어 재사용하며(매번 호출하면 몇 초씩 기다려야 함), 와드 원문(`raw_wod`)이 수정되면 자동으로 비워져 다음에 다시 만들어집니다.
+
+**Response 200**: `{ "template": "무게: \n\n스케일링: \n체감: " }`. **Response 404**: 세션 없음. **Response 502**: Gemini 호출 실패(이 경우 프론트엔드는 빈 입력칸으로 두며, 기록은 여전히 자유 텍스트로 작성할 수 있습니다).
 
 > 세션을 삭제하면(7번) 해당 세션의 기록도 함께 삭제됩니다.
 

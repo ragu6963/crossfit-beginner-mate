@@ -60,6 +60,7 @@ export async function createSession(db: D1Database, input: SessionInput): Promis
     class_type: input.class_type,
     raw_wod: input.raw_wod,
     parsed_guide: null,
+    record_template: null,
     created_at: now,
     updated_at: now,
   };
@@ -78,17 +79,37 @@ export async function updateSession(
   const existing = await getSessionById(db, id);
   if (!existing) return null;
 
+  // 와드 원문이 바뀌면 기존 입력 뼈대는 더 이상 맞지 않으므로 비운다(다음에 열 때 새로 만든다).
+  const templateStillValid = existing.raw_wod === input.raw_wod;
+
   const now = new Date().toISOString();
   await db
     .prepare(
       `UPDATE wod_sessions
-       SET date = ?, class_type = ?, raw_wod = ?, updated_at = ?
+       SET date = ?, class_type = ?, raw_wod = ?, updated_at = ?,
+           record_template = CASE WHEN ? THEN record_template ELSE NULL END
        WHERE id = ?`,
     )
-    .bind(input.date, input.class_type, input.raw_wod, now, id)
+    .bind(input.date, input.class_type, input.raw_wod, now, templateStillValid ? 1 : 0, id)
     .run();
 
-  return { ...existing, ...input, updated_at: now };
+  return {
+    ...existing,
+    ...input,
+    record_template: templateStillValid ? existing.record_template : null,
+    updated_at: now,
+  };
+}
+
+export async function updateRecordTemplate(
+  db: D1Database,
+  id: string,
+  template: string,
+): Promise<void> {
+  await db
+    .prepare("UPDATE wod_sessions SET record_template = ? WHERE id = ?")
+    .bind(template, id)
+    .run();
 }
 
 export async function updateParsedGuide(
