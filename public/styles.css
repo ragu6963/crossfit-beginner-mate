@@ -401,11 +401,12 @@ textarea:focus-visible {
   resize: vertical;
 }
 
+/* 같은 상세 패널 안의 관리자 액션 행(.detail-admin-actions)과 같은 리듬으로 보이도록 gap을 맞춘다.
+   구분선은 두지 않는다 — 이미 guide-section 안에 들어 있어 위쪽에 선이 하나 더 생기면 과해진다. */
 .record-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-  margin-top: var(--space-xs);
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
 }
 
 .record-parsed {
@@ -651,8 +652,12 @@ textarea:focus-visible {
   border-top: 1px solid var(--color-hairline);
 }
 
+/* 상세 패널 안의 액션 버튼은 기본 pill 버튼(17px)보다 한 단계 작게, 같은 너비로 나눠 갖는다.
+   기록 액션 행도 같은 규칙을 공유해 패널 안에서 버튼 톤이 어긋나지 않게 한다. */
 .detail-admin-actions .btn-secondary,
-.detail-admin-actions .btn-danger {
+.detail-admin-actions .btn-danger,
+.record-actions .btn-secondary,
+.record-actions .btn-danger {
   flex: 1;
   text-align: center;
   padding: 11px 14px;
