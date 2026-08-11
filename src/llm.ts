@@ -1,7 +1,13 @@
 import type { Env } from "./types";
 
-const GEMINI_MODEL = "gemini-3.1-flash-lite";
+const GEMINI_MODEL = "gemini-3.6-flash";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+
+// 지정하지 않으면 모델 기본값(높은 샘플링)으로 동작해 같은 와드를 재생성할 때마다 동작 설명·팁이
+// 크게 달라진다. 가이드는 창작이 아니라 "와드 원문의 해설"이므로 낮은 값으로 톤과 분량을 고정한다.
+// 다만 0까지 내리면 재생성 버튼이 항상 같은 결과만 내놓아 "다시 뽑아본다"는 동작이 무의미해지므로,
+// 표현의 여지는 남기는 선에서 0.3을 사용한다. (기록 파싱처럼 정답이 정해진 추출 작업은 0을 쓸 것)
+const GUIDE_TEMPERATURE = 0.3;
 
 export interface GuideMovement {
   name_en: string;
@@ -143,6 +149,7 @@ export async function generateWodGuide(env: Env, rawWod: string, classType: stri
     body: JSON.stringify({
       contents: [{ role: "user", parts: [{ text: buildPrompt(rawWod, classType) }] }],
       generationConfig: {
+        temperature: GUIDE_TEMPERATURE,
         responseMimeType: "application/json",
         responseSchema: RESPONSE_SCHEMA,
       },
