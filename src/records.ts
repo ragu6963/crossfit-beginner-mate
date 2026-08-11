@@ -15,9 +15,15 @@ const RECORD_TEMPERATURE = 0;
 // v2: 스코어를 파트 배열(parts)로 바꿨다. 실제 기록해보니 한 세션의 와드가 "Find 1Rep max
 // weighted pull up"(스트렝스) + "2Min on/1Min off"(메트콘)처럼 성격이 다른 파트로 나뉘는 경우가
 // 흔한데, v1은 세션당 스코어 하나만 담을 수 있어 한쪽이 통째로 버려졌다.
-export const RECORD_PARSER_VERSION = 2;
+// v3: score_type에 unscored를 추가했다. v2는 수치 스코어가 있는 파트만 담아서, "가중 풀업은
+// 못해서 밴드로 대체"처럼 수행 사실과 스케일링만 적힌 파트가 unmatched_text로 버려졌다.
+export const RECORD_PARSER_VERSION = 3;
 
-export const SCORE_TYPES = ["load", "sets", "rounds_reps", "time", "reps", "distance"] as const;
+// "unscored"는 그 파트를 수행하긴 했지만 수치 스코어가 남지 않은 경우다(예: 가중 풀업을 밴드
+// 보조로 대체해서 중량이 없음). 이 값이 없던 v2에서는 해당 파트가 파트로 잡히지 못하고
+// unmatched_text로 버려졌는데, 밴드 보조 → 무보조 같은 전환은 초보자 성장의 핵심 신호라
+// 반드시 파트로 남아야 한다.
+export const SCORE_TYPES = ["unscored", "load", "sets", "rounds_reps", "time", "reps", "distance"] as const;
 export type ScoreType = (typeof SCORE_TYPES)[number];
 
 export interface RecordLap {
@@ -167,7 +173,10 @@ function buildPrompt(rawWod: string, classType: string, rawRecord: string): stri
 
 # 파트 분리 (가장 먼저 판단한다)
 와드 원문은 성격이 다른 여러 파트로 나뉘는 경우가 많다(예: "Find 1Rep max weighted pull up" 같은 스트렝스 파트 + 인터벌 메트콘, 또는 "Core" + "METCON"). 파트마다 스코어의 성격이 다르므로 각각을 parts 배열에 원문 순서대로 담는다.
-- **기록에 결과가 적힌 파트만 담는다.** 와드에 있지만 내가 아무것도 적지 않은 파트는 넣지 않는다(값을 지어내지 말 것).
+- **기록에 언급된 파트는 모두 담는다.** 수치 스코어가 없어도 수행 사실이나 스케일링·실패가 적혀 있으면 파트로 담고, score_type을 unscored로 둔다(예: "가중 풀업은 못해서 밴드로 대체" → label은 해당 파트, score_type=unscored, rx_level=scaled, scaling_detail에 밴드 대체 내용). 이런 내용을 unmatched_text로 흘려보내면 안 된다.
+- 와드에 있지만 기록에 아무 언급도 없는 파트는 넣지 않는다(수행 여부를 지어내지 말 것).
+- **다만 스케일링·대체 언급만으로 새 파트를 만들지는 않는다.** unscored 파트는 (a) 그 파트의 제목이 기록에 언급되었거나, (b) 그 파트에만 등장하는 동작이 언급되었을 때만 만든다. 어느 파트의 것인지 분명하지 않은 스케일링 언급은 그 동작이 등장하는 파트의 scaling_detail에 넣는다.
+- 비슷한 동작명이 여러 파트에 걸쳐 나오면(예: 스트렝스의 "weighted pull up"과 메트콘의 "burpee pull up") 그 언급이 기록에서 놓인 위치와 앞뒤 문맥을 따른다. 메트콘 기록 줄 옆에 붙은 대체 언급은 메트콘의 것이다.
 - 와드가 한 덩어리이거나 기록이 한 파트만 다루면 parts는 원소 하나짜리 배열이다.
 - score_type, Rx/스케일링, 타임캡은 파트마다 따로 판정한다. 체감(rpe)과 팀 여부(is_team)는 세션 전체 속성이므로 최상위에만 둔다.
 
@@ -176,6 +185,7 @@ score_type은 **와드 원문의 구조만으로** 정한다. 내 기록이 어�
 기록에 세트별 숫자 없이 총합만 적혀 있어도 판정은 달라지지 않는다. 같은 와드는 그날 기록을 어떻게
 적었든 항상 같은 score_type이어야 한다(그래야 나중에 같은 와드끼리 비교할 수 있다).
 아래를 위에서부터 순서대로 검사하고, 처음 해당하는 것 하나만 고른다. 여러 개에 해당해 보이면 항상 번호가 작은 쪽이다.
+0. unscored — 그 파트를 수행했다는 언급은 있으나 수치 스코어가 기록되지 않은 경우(중량·시간·횟수 어느 것도 없음). score_display에는 "밴드 보조로 대체"처럼 기록 원문의 표현을 그대로 옮긴다.
 1. load — 와드가 중량 자체를 겨루는 경우(Strength/Weightlifting, %나 RM 표기, "Find 1RM"). 스코어는 kg/lb.
    **"Every 3:00 x 5Set"처럼 세트 구조로 진행되더라도, 세트마다 남는 결과가 든 무게라면 sets가 아니라 load다.**
 2. sets — 세트·인터벌마다 개별 스코어가 남되 그 스코어가 중량이 아닌 경우("N Min on M Min off x K set",

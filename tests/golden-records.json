@@ -26,6 +26,23 @@
       "expect_present": ["laps_movement", "scaling_detail"]
     },
     {
+      "id": "real-unscored-strength-2026-08-11",
+      "why": "실제로 다시 작성한 기록. 스트렝스 파트를 밴드 보조로 대체해 수치 스코어가 없는데, v2에서는 이 내용이 파트로 잡히지 못하고 unmatched_text로 버려졌다. 밴드 보조→무보조는 초보자 성장의 핵심 신호라 반드시 파트로 남아야 한다",
+      "class_type": "CF Class",
+      "wod": "Find 1Rep max weighted pull up\n\n2Min on / 1Min off, Until 60Rep\n15/12Cal Row\n15 Push up\nMax burpee pull up\n*Adv with vest\n*Target : 12Rep per set",
+      "record": "가중 풀업은 못해서 보라색 밴드로 대체\n\n로잉 - 푸시업 - 버피 풀업 기록\n랩당 12회 수행이 안되어서 가능한 만큼 수행.\n풀업대신 knee up 수행\n4 / 4 / 3 / 1 / 1 / 2",
+      "expect": {
+        "parts_count": 2,
+        "score_type": "unscored",
+        "rx_level": "scaled",
+        "p2.score_type": "sets",
+        "p2.laps_reps": [4, 4, 3, 1, 1, 2],
+        "p2.rx_level": "scaled",
+        "needs_review": true
+      },
+      "expect_present": ["scaling_detail", "p2.laps_movement", "p2.scaling_detail"]
+    },
+    {
       "id": "multipart-both-recorded",
       "why": "두 파트를 모두 기록하면 parts가 2개로 나뉘고, 파트별로 score_type이 따로 판정되어야 한다(스트렝스=load, 메트콘=sets)",
       "class_type": "CF Class",
