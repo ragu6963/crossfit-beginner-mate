@@ -88,6 +88,11 @@ const Shared = (() => {
       return "";
     }
 
+    // beginner_tip/caution은 나중에 추가된 필드라 기존에 저장된 가이드에는 없을 수 있다.
+    // 값이 있을 때만 해당 줄을 렌더링해 하위 호환을 유지한다.
+    const renderMovementNote = (className, label, text) =>
+      text ? `<p class="${className}"><span class="guide-note-label">${label}</span>${escapeHtml(text)}</p>` : "";
+
     const renderMovementsHtml = (movements) =>
       (movements || [])
         .map(
@@ -95,7 +100,9 @@ const Shared = (() => {
         <div class="guide-movement">
           <div class="guide-movement-name">${escapeHtml(m.name_kr)} <span class="guide-movement-name-en">(${escapeHtml(m.name_en)})</span></div>
           <p class="guide-movement-desc">${escapeHtml(m.description)}</p>
-          <p class="guide-scaling-tip">Scaling: ${escapeHtml(m.scaling_tip)}</p>
+          ${renderMovementNote("guide-beginner-tip", "초보자 팁", m.beginner_tip)}
+          ${renderMovementNote("guide-caution", "주의사항", m.caution)}
+          ${renderMovementNote("guide-scaling-tip", "Scaling", m.scaling_tip)}
         </div>
       `,
         )
@@ -130,7 +137,7 @@ const Shared = (() => {
       </div>
       ${warmupMovementsHtml ? `<div class="guide-section"><h3 class="guide-section-title">웜업 (Core)</h3>${warmupMovementsHtml}</div>` : ""}
       ${movementsHtml ? `<div class="guide-section"><h3 class="guide-section-title">동작 설명</h3>${movementsHtml}</div>` : ""}
-      ${keyTipsHtml ? `<div class="guide-section"><h3 class="guide-section-title">운동 팁</h3><ul class="guide-key-tips">${keyTipsHtml}</ul></div>` : ""}
+      ${keyTipsHtml ? `<div class="guide-section"><h3 class="guide-section-title">와드 전략 (페이싱)</h3><ul class="guide-key-tips">${keyTipsHtml}</ul></div>` : ""}
       ${stretchesHtml ? `<div class="guide-section"><h3 class="guide-section-title">쿨다운 스트레칭</h3>${stretchesHtml}</div>` : ""}
     `;
   }

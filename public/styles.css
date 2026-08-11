@@ -320,7 +320,7 @@ textarea:focus-visible {
 }
 
 .guide-movement {
-  margin-bottom: var(--space-md);
+  margin-bottom: var(--space-lg);
 }
 
 .guide-movement-name {
@@ -339,10 +339,44 @@ textarea:focus-visible {
   font-size: 15px;
 }
 
+/* 동작별 부가 정보(초보자 팁 / 주의사항 / 스케일링)는 설명 본문보다 한 단계 낮은 위계로 두되,
+   라벨 칩으로 종류를 구분한다. 주의사항만 danger 계열을 써서 시각적으로 먼저 걸리게 한다. */
+.guide-beginner-tip,
+.guide-caution,
 .guide-scaling-tip {
-  margin: 4px 0 0;
+  margin: var(--space-xs) 0 0;
+  padding-left: var(--space-sm);
+  border-left: 2px solid var(--color-hairline);
   font-size: 14px;
+  line-height: 1.55;
+  color: var(--color-ink-muted-80);
+}
+
+.guide-note-label {
+  display: inline-block;
+  margin-right: var(--space-xs);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.guide-beginner-tip {
+  border-left-color: var(--color-primary);
+}
+
+.guide-beginner-tip .guide-note-label {
   color: var(--color-primary);
+}
+
+.guide-caution {
+  border-left-color: var(--color-danger);
+}
+
+.guide-caution .guide-note-label {
+  color: var(--color-danger);
+}
+
+.guide-scaling-tip .guide-note-label {
+  color: var(--color-ink-muted-48);
 }
 
 .guide-key-tips {

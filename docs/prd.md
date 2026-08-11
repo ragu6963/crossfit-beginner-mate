@@ -41,6 +41,9 @@
     - **모델:** Google Gemini API(`gemini-3.1-flash-lite`), REST `generateContent` 엔드포인트를 `x-goog-api-key` 헤더로 호출(`src/llm.ts`). API 키는 Cloudflare Workers Secret `GEMINI_API_KEY`로 관리하며 로컬은 `.dev.vars`에 별도 보관(코드에 하드코딩 금지).
     - **구조화 출력:** Gemini의 `responseSchema`(OpenAPI 서브셋) + `responseMimeType: "application/json"`으로 출력 형태를 강제해 파싱 실패/필드 누락 위험을 줄입니다.
     - **프롬프트 설계:** 실제 더미 데이터(2026-08-06, 9-7-5 Clean & Jerk 와드)를 few-shot 예시로 프롬프트에 포함해 출력 톤·분량·스케일링 팁의 구체성을 고정합니다. `youtube_search_keyword`는 "스트레칭" 같은 범용 단어 조합을 피하고 부위명 중심의 2~3단어로 생성하도록 명시(검색 결과가 뭉개지는 문제 방지).
+      - **페르소나:** "CrossFit Level 2 트레이너 + 기능해부학/역도 코칭 10년 이상"으로 지정해, 전문가의 정확한 지식을 초보자 언어로 풀어 설명하도록 유도합니다. 전문 용어는 쓰되 처음 등장할 때 풀어주도록 규칙에 명시.
+      - **동작별 정보의 4분할:** 각 동작마다 `description`(셋업→실행→마무리 수행 방법) / `beginner_tip`(코칭 큐) / `caution`(초보자가 흔히 하는 실수와 부상 위험 부위, 교정법) / `scaling_tip`(구체적 수치·대체 동작)을 모두 채우게 하고, 서로 내용이 겹치지 않도록 각 필드의 역할을 프롬프트에서 분명히 구분합니다.
+      - **`key_tips`의 역할 재정의:** 동작별 자세 팁은 각 동작의 `beginner_tip`으로 내려보내고, `key_tips`는 와드 전체를 관통하는 페이싱·분할(브레이크업)·호흡 전략만 담습니다("9회를 3-3-3으로 끊어라"처럼 횟수 분할을 숫자로 제안). 사용자 뷰의 섹션 제목도 "운동 팁" → "와드 전략 (페이싱)"으로 변경.
     - **엔드포인트:** `POST /api/admin/sessions/:id/guide` (인증 필요) — 성공 시 갱신된 세션 반환(200), 세션 없음(404), Gemini 호출/응답 검증 실패(502).
     - `class_type`(CF Class/Strength Class/Weightlifting Class)은 세션 테이블 컬럼으로 이미 존재하므로 LLM 출력에는 중복시키지 않고, 와드 자체의 형식과 콘텐츠만 담습니다.
     ```json
@@ -48,12 +51,12 @@
       "workout_type": "AMRAP / For Time / EMOM / Interval / Strength / Weightlifting",
       "target_explanation": "오늘 운동 방식과 목표를 초보자 눈높이에서 설명",
       "warmup_movements": [
-        { "name_en": "...", "name_kr": "...", "description": "...", "scaling_tip": "..." }
+        { "name_en": "...", "name_kr": "...", "description": "...", "beginner_tip": "...", "caution": "...", "scaling_tip": "..." }
       ],
       "movements": [
-        { "name_en": "...", "name_kr": "...", "description": "...", "scaling_tip": "..." }
+        { "name_en": "...", "name_kr": "...", "description": "...", "beginner_tip": "...", "caution": "...", "scaling_tip": "..." }
       ],
-      "key_tips": ["..."],
+      "key_tips": ["와드 전체 페이싱/분할/호흡 전략 (동작별 팁 아님)"],
       "cooldown_stretches": [
         { "stretch_name": "...", "target_muscle": "...", "youtube_search_keyword": "..." }
       ]
