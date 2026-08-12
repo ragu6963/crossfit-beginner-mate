@@ -93,16 +93,21 @@ const Shared = (() => {
     const renderMovementNote = (className, label, text) =>
       text ? `<p class="${className}"><span class="guide-note-label">${label}</span>${escapeHtml(text)}</p>` : "";
 
+    // 동작 구분은 구분선 대신 번호 인덱스로 한다(01, 02… — 날짜 숫자/스코어 배지와 같은 콘덴스드
+    // 숫자 어휘를 재사용). 실제로 순서가 있는 콘텐츠라 번호를 붙이는 게 장식이 아니라 정보다.
     const renderMovementsHtml = (movements) =>
       (movements || [])
         .map(
-          (m) => `
+          (m, i) => `
         <div class="guide-movement">
-          <div class="guide-movement-name">${escapeHtml(m.name_kr)} <span class="guide-movement-name-en">(${escapeHtml(m.name_en)})</span></div>
-          <p class="guide-movement-desc">${escapeHtml(m.description)}</p>
-          ${renderMovementNote("guide-beginner-tip", "초보자 팁", m.beginner_tip)}
-          ${renderMovementNote("guide-caution", "주의사항", m.caution)}
-          ${renderMovementNote("guide-scaling-tip", "Scaling", m.scaling_tip)}
+          <div class="guide-movement-index" aria-hidden="true">${String(i + 1).padStart(2, "0")}</div>
+          <div class="guide-movement-body">
+            <div class="guide-movement-name">${escapeHtml(m.name_kr)} <span class="guide-movement-name-en">(${escapeHtml(m.name_en)})</span></div>
+            <p class="guide-movement-desc">${escapeHtml(m.description)}</p>
+            ${renderMovementNote("guide-beginner-tip", "초보자 팁", m.beginner_tip)}
+            ${renderMovementNote("guide-caution", "주의사항", m.caution)}
+            ${renderMovementNote("guide-scaling-tip", "Scaling", m.scaling_tip)}
+          </div>
         </div>
       `,
         )

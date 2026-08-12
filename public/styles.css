@@ -474,16 +474,20 @@ textarea:focus-visible {
 }
 
 /* ==========================================================================
-   Guide sections — white fill, hairline border. Category colour lives on the
-   small square + label only (see .guide-section-title below), never on the
-   card's border edge (the "side-stripe card" anti-pattern) or a fill colour.
+   Guide sections — no card box (boxing every section read as cramped). Plain
+   vertical rhythm instead: a hairline rule above each section after the
+   first, category colour carried only by the small square + label.
    ========================================================================== */
 .guide-section {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--color-hairline);
+}
+
+.guide-section:first-child {
   margin-top: var(--space-md);
-  padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius-card);
-  background: var(--color-paper);
-  border: 1px solid var(--color-hairline);
+  padding-top: 0;
+  border-top: none;
 }
 
 .guide-section--goal .guide-section-title {
@@ -527,12 +531,33 @@ textarea:focus-visible {
   background: currentColor;
 }
 
+/* No divider line between movements — a numbered index rail does the
+   separating instead (a numeral is real information here: movements are
+   genuinely ordered), so no line needs to fight for attention. */
 .guide-movement {
+  display: flex;
+  gap: var(--space-sm);
   margin-bottom: var(--space-md);
 }
 
 .guide-movement:last-child {
   margin-bottom: 0;
+}
+
+.guide-movement-index {
+  flex: 0 0 auto;
+  width: 26px;
+  font-family: var(--font-outlier);
+  font-weight: 800;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--color-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.guide-movement-body {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .guide-movement-name {
