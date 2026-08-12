@@ -21,13 +21,14 @@
     },
     {
       "id": "real-unscored-strength-2026-08-11",
-      "why": "실제로 다시 작성한 기록. 스트렝스 파트를 밴드 보조로 대체해 수치 스코어가 없는데, v2에서는 이 내용이 파트로 잡히지 못하고 unmatched_text로 버려졌다. 밴드 보조→무보조는 초보자 성장의 핵심 신호라 반드시 파트로 남아야 한다",
+      "why": "스트렝스 파트를 밴드 보조로 수행해 수치가 없어도 파트는 남겨야 한다. 와드 고유 형식(load)은 유지하고 이번 결과의 수치 유무만 unscored로 분리한다",
       "class_type": "CF Class",
       "wod": "Find 1Rep max weighted pull up\n\n2Min on / 1Min off, Until 60Rep\n15/12Cal Row\n15 Push up\nMax burpee pull up\n*Adv with vest\n*Target : 12Rep per set",
       "record": "가중 풀업은 못해서 보라색 밴드로 대체\n\n로잉 - 푸시업 - 버피 풀업 기록\n랩당 12회 수행이 안되어서 가능한 만큼 수행.\n풀업대신 knee up 수행\n4 / 4 / 3 / 1 / 1 / 2",
       "expect": {
         "parts_count": 2,
-        "score_type": "unscored",
+        "score_type": "load",
+        "result_status": "unscored",
         "rx_level": "scaled",
         "p2.score_type": "sets",
         "p2.laps_reps": [4, 4, 3, 1, 1, 2],
@@ -38,16 +39,18 @@
     },
     {
       "id": "real-explicit-incomplete-2026-08-11",
-      "why": "앞 케이스에 '총 60 Rep 수행하지 못함'을 덧붙인 버전. 미완료를 명시했으면 capped/reps_remaining으로 표현되므로 needs_review는 내려가야 한다. 확인이 필요 없는 기록에까지 경고가 붙으면 경고를 무시하게 된다",
+      "why": "앞 케이스에 '총 60 Rep 수행하지 못함'을 덧붙인 버전. 시간 제한 도달은 아니므로 time_capped가 아니라 incomplete이며, 명시적 미완료만으로 needs_review를 올리지 않는다",
       "class_type": "CF Class",
       "wod": "Find 1Rep max weighted pull up\n\n2Min on / 1Min off, Until 60Rep\n15/12Cal Row\n15 Push up\nMax burpee pull up\n*Adv with vest\n*Target : 12Rep per set",
       "record": "가중 풀업은 못해서 보라색 밴드로 대체\n\n로잉 - 푸시업 - 버피 풀업 기록\n랩당 12회 수행이 안되어서 가능한 만큼 수행하고, 총 60 Rep 수행하지 못함.\n풀업대신 knee up 수행\n4 / 4 / 3 / 1 / 1 / 2",
       "expect": {
         "parts_count": 2,
-        "score_type": "unscored",
+        "score_type": "load",
+        "result_status": "unscored",
         "p2.score_type": "sets",
         "p2.laps_reps": [4, 4, 3, 1, 1, 2],
-        "p2.capped": true,
+        "p2.completion_status": "incomplete",
+        "p2.capped": false,
         "needs_review": false
       }
     },
@@ -106,13 +109,13 @@
     },
     {
       "id": "gender-prescription-is-rx",
-      "why": "'500 / 450M' 같은 슬래시 표기는 남/여 Rx 처방이다. 450을 수행한 것은 scaled가 아니라 rx여야 한다 (실측에서 scaled로 오판한 케이스)",
+      "why": "슬래시 처방값 하나와 일치해도 파트 전체 수행 조건을 확인할 수 없으면 Rx를 단정하지 않는다",
       "class_type": "CF Class",
       "wod": "5Min on 2Min off x 4set\n400M Run\n500 / 450M Row\nRemaining time, max double under\n*TARGET : 50++",
       "record": "로우는 450으로 했고 더블언더 총 187개",
       "expect": {
         "score_type": "sets",
-        "rx_level": "rx"
+        "rx_level": "unknown"
       }
     },
     {
@@ -136,6 +139,7 @@
       "expect": {
         "score_type": "time",
         "score_seconds": 342,
+        "completion_status": "complete",
         "capped": false
       }
     },
@@ -147,6 +151,7 @@
       "record": "타임캡 8분 걸림, 마지막 버피 5개 남기고 종료",
       "expect": {
         "score_type": "time",
+        "completion_status": "time_capped",
         "capped": true,
         "score_seconds": 480,
         "reps_remaining": 5

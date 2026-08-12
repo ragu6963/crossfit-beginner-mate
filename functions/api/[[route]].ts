@@ -178,7 +178,11 @@ app.get("/admin/sessions/:id/record", async (c) => {
     getRecordBySessionId(c.env.DB, id),
     getSessionById(c.env.DB, id),
   ]);
-  return c.json({ record, template: session?.record_template ?? null });
+  const storedTemplate = session?.record_template ?? null;
+  // 값 종류·단위·완료 상태가 없던 구형 양식은 그대로 재사용하지 않는다. null을 돌려주면 프론트가
+  // 새 프롬프트로 한 번 재생성해 저장한다. 실제 사용자가 쓴 raw_record에는 영향을 주지 않는다.
+  const template = storedTemplate?.includes("수행 방식(Rx/스케일/모름):") ? storedTemplate : null;
+  return c.json({ record, template });
 });
 
 // POST /api/admin/sessions/:id/record/template (입력 양식 생성/재생성)

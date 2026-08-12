@@ -8,7 +8,9 @@
     "db:migrate:local": "wrangler d1 migrations apply crossfit_beginner_mate --local",
     "db:migrate:remote": "wrangler d1 migrations apply crossfit_beginner_mate --remote",
     "typecheck": "tsc --noEmit",
-    "test:records": "node --experimental-strip-types scripts/check-record-parsing.ts"
+    "test:records": "node --experimental-strip-types scripts/check-record-parsing.ts",
+    "test:prompts": "node --experimental-strip-types scripts/check-prompt-contracts.ts",
+    "test:llm": "node --experimental-strip-types scripts/check-guide-template-generation.ts"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260801.1",

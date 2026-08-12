@@ -86,7 +86,15 @@ globalThis.fetch = (async (url: any, init: any) => {
 //   p2.<key>, p3.<key> → 2번째/3번째 파트의 값 (접두사 없으면 첫 번째 파트)
 //   laps_reps 등       → 해당 파트 laps 안의 값을 배열로 꺼낸다
 //   rpe/is_team 등     → 최상위 필드는 파트가 아니라 결과 루트에서 찾는다
-const ROOT_KEYS = ["rpe", "rpe_inferred", "is_team", "needs_review", "review_reason", "unmatched_text"];
+const ROOT_KEYS = [
+  "rpe",
+  "rpe_inferred",
+  "effort_note",
+  "is_team",
+  "needs_review",
+  "review_reason",
+  "unmatched_text",
+];
 
 function actualFor(key: string, parsed: any): unknown {
   if (key === "parts_count") return parsed.parts?.length;

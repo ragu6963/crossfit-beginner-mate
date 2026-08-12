@@ -34,7 +34,7 @@
 
 ### LLM (Gemini) 연동 완료
 - `gemini-3.1-flash-lite` 모델을 연동하여, 관리자가 수동으로 "가이드 생성" 버튼을 눌렀을 때 동기 방식으로 가이드가 생성되도록 구현했습니다(`POST /api/admin/sessions/:id/guide`, `src/llm.ts`). Gemini의 `responseSchema` 구조화 출력을 사용해 파싱 실패 위험을 줄이고, API 키는 `GEMINI_API_KEY` 환경 변수(로컬 `.dev.vars`, 배포 시 Cloudflare Workers Secret)로 관리합니다.
-- Core 파트와 METCON 파트가 나뉘는 와드 대응을 위해 `warmup_movements` 선택 필드를 출력 스키마에 추가하고, 완벽하게 두 파트로 분리 렌더링되도록 처리했습니다.
+- Core를 웜업으로 단정하지 않도록 가이드 출력을 `parts[]` 구조로 확장했습니다. 각 파트는 원문 제목과 `warmup/skill/strength/weightlifting/accessory/metcon/cooldown/unknown` 역할을 보존하며, 기존 `warmup_movements`/`movements` 데이터도 호환 렌더링합니다.
 
 ## 3. 알려진 이슈 / 배포 전 남은 작업
 
@@ -52,4 +52,3 @@
 - [`commands.md`](./commands.md) — 개발/배포 명령어 정리
 - [`DESIGN.md`](./DESIGN.md) — 디자인 시스템 토큰
 - [`../migrations/0001_init.sql`](../migrations/0001_init.sql) — D1 마이그레이션
-

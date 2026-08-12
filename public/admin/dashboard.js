@@ -173,9 +173,16 @@ function renderRecordPartHtml(part, showLabel) {
   const badges = [];
   if (part.score_display) badges.push(`<span class="record-badge record-badge-score">${Shared.escapeHtml(part.score_display)}</span>`);
   if (SCORE_TYPE_LABELS[part.score_type]) badges.push(`<span class="record-badge">${SCORE_TYPE_LABELS[part.score_type]}</span>`);
+  if (part.score_type === "none") badges.push(`<span class="record-badge">기록 항목 없음</span>`);
+  if (part.result_status === "unscored") badges.push(`<span class="record-badge">수치 없음</span>`);
+  if (part.result_status === "unknown") badges.push(`<span class="record-badge">해석 불명확</span>`);
   if (part.rx_level === "rx") badges.push(`<span class="record-badge">Rx</span>`);
   if (part.rx_level === "scaled") badges.push(`<span class="record-badge">스케일</span>`);
-  if (part.capped) badges.push(`<span class="record-badge">타임캡${part.reps_remaining ? ` · ${part.reps_remaining}개 남음` : ""}</span>`);
+  const completionStatus = part.completion_status || (part.capped ? "time_capped" : "unknown");
+  if (completionStatus === "complete") badges.push(`<span class="record-badge">완료</span>`);
+  if (completionStatus === "time_capped") badges.push(`<span class="record-badge">타임캡${part.reps_remaining ? ` · ${part.reps_remaining}개 남음` : ""}</span>`);
+  if (completionStatus === "stopped") badges.push(`<span class="record-badge">중단${part.reps_remaining ? ` · ${part.reps_remaining}개 남음` : ""}</span>`);
+  if (completionStatus === "incomplete") badges.push(`<span class="record-badge">미완료${part.reps_remaining ? ` · ${part.reps_remaining}개 남음` : ""}</span>`);
 
   const lapsHtml = (part.laps || [])
     .map((l) => {
@@ -184,9 +191,13 @@ function renderRecordPartHtml(part, showLabel) {
           ? `${l.reps}회`
           : typeof l.time_sec === "number"
             ? formatSeconds(l.time_sec)
-            : typeof l.load === "number"
-              ? `${l.load}${part.score_load_unit ?? ""}`
-              : "-";
+             : typeof l.load === "number"
+               ? `${l.load}${part.score_load_unit ?? ""}`
+               : typeof l.distance === "number"
+                 ? `${l.distance}${part.score_distance_unit ?? ""}`
+                 : typeof l.calories === "number"
+                   ? `${l.calories}cal`
+               : "-";
       return `<span class="record-lap"><b>${l.index}</b> ${Shared.escapeHtml(String(value))}</span>`;
     })
     .join("");
@@ -196,9 +207,10 @@ function renderRecordPartHtml(part, showLabel) {
       ${showLabel && part.label ? `<div class="record-part-label">${Shared.escapeHtml(part.label)}</div>` : ""}
       <div class="record-badges">${badges.join("")}</div>
       ${part.laps_movement ? `<p class="record-detail">${Shared.escapeHtml(part.laps_movement)}</p>` : ""}
-      ${lapsHtml ? `<div class="record-laps">${lapsHtml}</div>` : ""}
-      ${part.scaling_detail ? `<p class="record-detail">스케일링: ${Shared.escapeHtml(part.scaling_detail)}</p>` : ""}
-    </div>
+       ${lapsHtml ? `<div class="record-laps">${lapsHtml}</div>` : ""}
+       ${part.scaling_detail ? `<p class="record-detail">스케일링: ${Shared.escapeHtml(part.scaling_detail)}</p>` : ""}
+       ${part.rx_evidence ? `<p class="record-detail">수행 방식 근거: ${Shared.escapeHtml(part.rx_evidence)}</p>` : ""}
+     </div>
   `;
 }
 
@@ -233,9 +245,10 @@ function renderParsedRecordHtml(parsedRecordRaw) {
 
   return `
     <div class="record-parsed">
-      ${parts.map((part) => renderRecordPartHtml(part, showLabel)).join("")}
-      ${sessionBadges.length ? `<div class="record-badges">${sessionBadges.join("")}</div>` : ""}
-      ${warnings.map((w) => `<p class="record-warning">${w}</p>`).join("")}
+       ${parts.map((part) => renderRecordPartHtml(part, showLabel)).join("")}
+       ${sessionBadges.length ? `<div class="record-badges">${sessionBadges.join("")}</div>` : ""}
+       ${p.effort_note ? `<p class="record-detail">체감 메모: ${Shared.escapeHtml(p.effort_note)}</p>` : ""}
+       ${warnings.map((w) => `<p class="record-warning">${w}</p>`).join("")}
     </div>
   `;
 }

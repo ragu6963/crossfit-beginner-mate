@@ -104,18 +104,42 @@ const Shared = (() => {
           <div class="guide-movement-body">
             <div class="guide-movement-name">${escapeHtml(m.name_kr)} <span class="guide-movement-name-en">(${escapeHtml(m.name_en)})</span></div>
             <p class="guide-movement-desc">${escapeHtml(m.description)}</p>
-            ${renderMovementNote("guide-beginner-tip", "초보자 팁", m.beginner_tip)}
-            ${renderMovementNote("guide-caution", "주의사항", m.caution)}
-            ${renderMovementNote("guide-scaling-tip", "Scaling", m.scaling_tip)}
-          </div>
-        </div>
-      `,
-        )
-        .join("");
+             ${renderMovementNote("guide-beginner-tip", "초보자 팁", m.beginner_tip)}
+             ${renderMovementNote("guide-caution", "주의사항", m.caution)}
+             ${renderMovementNote("guide-scaling-tip", "Scaling", m.scaling_tip)}
+             ${m.coach_check_required ? renderMovementNote("guide-caution", "코치 확인", "처음 수행하거나 난도를 정하기 전에 현장 코치에게 확인하세요.") : ""}
+           </div>
+         </div>
+       `,
+         )
+         .join("");
 
-    const warmupMovementsHtml = renderMovementsHtml(guide.warmup_movements);
-    const movementsHtml = renderMovementsHtml(guide.movements);
+    const partTypeLabels = {
+      warmup: "웜업",
+      skill: "기술 연습",
+      strength: "스트렝스",
+      weightlifting: "역도",
+      accessory: "보조 운동",
+      metcon: "본 운동",
+      cooldown: "쿨다운",
+      unknown: "운동 파트",
+    };
+    const partsHtml = Array.isArray(guide.parts)
+      ? guide.parts
+          .map((part) => {
+            const movements = renderMovementsHtml(part.movements);
+            if (!movements) return "";
+            const typeLabel = partTypeLabels[part.part_type] || partTypeLabels.unknown;
+            const title = part.label ? `${typeLabel} · ${part.label}` : typeLabel;
+            return `<div class="guide-section guide-section--movements"><h3 class="guide-section-title">${escapeHtml(title)}</h3>${movements}</div>`;
+          })
+          .join("")
+      : "";
+    // 재생성 전 저장된 warmup_movements/movements 형식도 계속 표시한다.
+    const legacyWarmupMovementsHtml = partsHtml ? "" : renderMovementsHtml(guide.warmup_movements);
+    const legacyMovementsHtml = partsHtml ? "" : renderMovementsHtml(guide.movements);
     const keyTipsHtml = (guide.key_tips || []).map((tip) => `<li>${escapeHtml(tip)}</li>`).join("");
+    const ambiguitiesHtml = (guide.ambiguities || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("");
 
     // 특정 영상을 골라 임베드하지 않는다. 키워드로 유튜브 검색 결과 페이지를 새 탭으로 열어주는
     // 방식으로 고정한다(환각 위험/유지보수 부담 회피, prd.md 설계 결정 참고).
@@ -138,13 +162,16 @@ const Shared = (() => {
     // 카테고리별 modifier 클래스는 순수 스타일링 훅이다(로직 없음) — 상세 시트에서 어느 섹션을 보고
     // 있는지 색으로 구분할 수 있게 한다(크로스핏 지식이 없어도 스캔 가능하도록).
     return `
-      <div class="guide-section guide-section--goal">
-        <h3 class="guide-section-title">오늘의 목표</h3>
-        <p>${escapeHtml(guide.workout_type)} · ${escapeHtml(guide.target_explanation)}</p>
-      </div>
-      ${warmupMovementsHtml ? `<div class="guide-section guide-section--warmup"><h3 class="guide-section-title">웜업 (Core)</h3>${warmupMovementsHtml}</div>` : ""}
-      ${movementsHtml ? `<div class="guide-section guide-section--movements"><h3 class="guide-section-title">동작 설명</h3>${movementsHtml}</div>` : ""}
-      ${keyTipsHtml ? `<div class="guide-section guide-section--tips"><h3 class="guide-section-title">와드 전략 (페이싱)</h3><ul class="guide-key-tips">${keyTipsHtml}</ul></div>` : ""}
+       <div class="guide-section guide-section--goal">
+         <h3 class="guide-section-title">오늘의 목표</h3>
+         <p>${escapeHtml(guide.workout_type)} · ${escapeHtml(guide.target_explanation)}</p>
+       </div>
+       ${guide.safety_note ? `<div class="guide-section guide-section--warmup"><h3 class="guide-section-title">먼저 확인하세요</h3><p>${escapeHtml(guide.safety_note)}</p></div>` : ""}
+       ${guide.needs_review && ambiguitiesHtml ? `<div class="guide-section guide-section--warmup"><h3 class="guide-section-title">코치 확인 필요</h3><ul class="guide-key-tips">${ambiguitiesHtml}</ul></div>` : ""}
+       ${partsHtml}
+       ${legacyWarmupMovementsHtml ? `<div class="guide-section guide-section--warmup"><h3 class="guide-section-title">웜업 / 보조 운동</h3>${legacyWarmupMovementsHtml}</div>` : ""}
+       ${legacyMovementsHtml ? `<div class="guide-section guide-section--movements"><h3 class="guide-section-title">동작 설명</h3>${legacyMovementsHtml}</div>` : ""}
+       ${keyTipsHtml ? `<div class="guide-section guide-section--tips"><h3 class="guide-section-title">와드 전략 (페이싱)</h3><ul class="guide-key-tips">${keyTipsHtml}</ul></div>` : ""}
       ${stretchesHtml ? `<div class="guide-section guide-section--stretch"><h3 class="guide-section-title">쿨다운 스트레칭</h3>${stretchesHtml}</div>` : ""}
     `;
   }

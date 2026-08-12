@@ -153,6 +153,8 @@ Request Body: `{ "raw_record": "타임캡 8분, 버피 5개 남김. 클린은 60
 
 **Response 200**: `{ "record": {...} }`. 파싱에 실패한 경우에도 **200**이며 `{ "record": {...}, "parse_error": "..." }` 형태로 원본 저장 결과와 실패 사유를 함께 반환합니다(`parsed_record`는 `null`). 이때는 11번 API로 재시도합니다.
 
+`parsed_record.parts[]`는 와드 고유 형식인 `score_type`과 이번 기록의 수치 유무인 `result_status(scored/unscored/unknown)`를 분리합니다. 완료 상태도 `completion_status(complete/time_capped/stopped/incomplete/unknown)`로 구분하며, 기존 소비자를 위한 `capped`는 `time_capped`일 때만 true인 파생 필드입니다. `rpe`는 사용자가 1~10 숫자로 직접 적은 경우에만 저장하고 자연어 체감은 `effort_note`에 보존합니다.
+
 **Response 400**: `raw_record`가 비어 있음. **Response 404**: 해당 세션 없음.
 
 ### 11. `POST /api/admin/sessions/:id/record/parse`
@@ -169,11 +171,11 @@ Request Body: `{ "raw_record": "타임캡 8분, 버피 5개 남김. 클린은 60
 
 기록 입력칸에 미리 채워 넣을 **빈칸 서식**을 생성해 `wod_sessions.record_template`에 저장합니다. 운동 직후 빈 textarea를 마주하면 무엇을 어떻게 적을지 막막해 기록이 잘 안 써진다는 실사용 피드백에서 나왔습니다.
 
-LLM은 **파트 분리와 파트별 `score_type` 판정만** 담당하고(기록 파서와 같은 분류를 공유), 실제 서식 문자열은 코드가 조립합니다. LLM에 서식까지 맡겼을 때 9-7-5 For Time(완주 시간 하나가 스코어)에 "1라운드/2라운드/3라운드" 칸이 생기는 문제가 있었습니다 — **잘못된 양식은 빈 화면보다 나쁩니다.** 없는 기록을 적게 만들기 때문입니다.
+LLM은 파트별 `score_type`, 세트 수, `value_type`(시간/횟수/중량/거리/칼로리), `value_unit`만 판정하고 실제 서식 문자열은 코드가 조립합니다. 기록 파서와 양식 생성기는 `src/wod-prompt-rules.ts`의 분류 규칙을 공유합니다. 숫자 스코어가 없는 기술·Core 파트는 억지 점수 대신 수행 메모를 받고, 모호한 구조는 양식 상단에 코치 확인 문구를 표시합니다.
 
 세션당 한 번 만들어 재사용하며(매번 호출하면 몇 초씩 기다려야 함), 와드 원문(`raw_wod`)이 수정되면 자동으로 비워져 다음에 다시 만들어집니다.
 
-**Response 200**: `{ "template": "무게: \n\n스케일링: \n체감: " }`. **Response 404**: 세션 없음. **Response 502**: Gemini 호출 실패(이 경우 프론트엔드는 빈 입력칸으로 두며, 기록은 여전히 자유 텍스트로 작성할 수 있습니다).
+**Response 200** 예: `{ "template": "1세트 무게(숫자+kg/lb): ...\n수행 방식(Rx/스케일/모름): ...\n완료 상태(...): ...\n\n체감 강도 RPE(1=매우 쉬움, 10=더 수행 불가): " }`. 스케일링과 완료 상태는 멀티파트 문맥을 잃지 않도록 파트별로 받습니다. **Response 404**: 세션 없음. **Response 502**: Gemini 호출 실패(이 경우 프론트엔드는 빈 입력칸으로 두며, 기록은 여전히 자유 텍스트로 작성할 수 있습니다).
 
 > 세션을 삭제하면(7번) 해당 세션의 기록도 함께 삭제됩니다.
 

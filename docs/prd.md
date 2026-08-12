@@ -38,31 +38,37 @@
   - **세션(클래스 종류) 구조:** 하루에 여러 타임이 운영되더라도 같은 클래스 종류(예: CF Class)로 진행되는 세션은 모두 동일한 와드를 수행하므로, 시간대는 데이터로 관리하지 않습니다. 다만 어떤 날은 CF Class와 Strength Class/Weightlifting Class가 번갈아 진행되며 이 경우 와드 내용이 서로 다르므로, **같은 날짜에 클래스 종류별로 세션을 여러 개 추가/수정/삭제**할 수 있어야 합니다(예: 같은 날 "CF Class" 세션 1개 + "Strength Class" 세션 1개).
   - **세션별 입력 항목:** 클래스 종류(CF Class / Strength Class / Weightlifting Class 등), 해당 클래스의 원본 와드 텍스트. (시작/종료 시간은 저장하지 않음 — 같은 클래스 종류의 모든 타임은 동일한 와드이므로 시간 구분이 불필요하다고 판단.)
   - **LLM 연동 및 구조화 출력 (구현 완료):** 관리자가 세션을 저장한 뒤, 대시보드에서 **"가이드 생성" 버튼을 눌러 수동으로 트리거**합니다(세션 저장 시 자동 호출 아님 — raw_wod를 여러 번 고치는 동안 불필요한 API 호출이 반복되는 것을 방지). 요청은 **동기 처리**로, 관리자는 응답을 기다리는 동안 버튼이 "생성 중..."으로 바뀌고 완료되면 목록이 즉시 갱신됩니다. 이미 `parsed_guide`가 있는 세션에 다시 요청하면 confirm 다이얼로그로 덮어쓰기 여부를 확인합니다.
-    - **모델:** Google Gemini API(`gemini-3.1-flash-lite`), REST `generateContent` 엔드포인트를 `x-goog-api-key` 헤더로 호출(`src/llm.ts`). API 키는 Cloudflare Workers Secret `GEMINI_API_KEY`로 관리하며 로컬은 `.dev.vars`에 별도 보관(코드에 하드코딩 금지).
+    - **모델:** Google Gemini API(`gemini-3.6-flash`), REST `generateContent` 엔드포인트를 `x-goog-api-key` 헤더로 호출(`src/llm.ts`). API 키는 Cloudflare Workers Secret `GEMINI_API_KEY`로 관리하며 로컬은 `.dev.vars`에 별도 보관(코드에 하드코딩 금지).
     - **구조화 출력:** Gemini의 `responseSchema`(OpenAPI 서브셋) + `responseMimeType: "application/json"`으로 출력 형태를 강제해 파싱 실패/필드 누락 위험을 줄입니다.
-    - **프롬프트 설계:** 실제 더미 데이터(2026-08-06, 9-7-5 Clean & Jerk 와드)를 few-shot 예시로 프롬프트에 포함해 출력 톤·분량·스케일링 팁의 구체성을 고정합니다. `youtube_search_keyword`는 "스트레칭" 같은 범용 단어 조합을 피하고 부위명 중심의 2~3단어로 생성하도록 명시(검색 결과가 뭉개지는 문제 방지).
-      - **페르소나:** "CrossFit Level 2 트레이너 + 기능해부학/역도 코칭 10년 이상"으로 지정해, 전문가의 정확한 지식을 초보자 언어로 풀어 설명하도록 유도합니다. 전문 용어는 쓰되 처음 등장할 때 풀어주도록 규칙에 명시.
-      - **동작별 정보의 4분할:** 각 동작마다 `description`(셋업→실행→마무리 수행 방법) / `beginner_tip`(코칭 큐) / `caution`(초보자가 흔히 하는 실수와 부상 위험 부위, 교정법) / `scaling_tip`(구체적 수치·대체 동작)을 모두 채우게 하고, 서로 내용이 겹치지 않도록 각 필드의 역할을 프롬프트에서 분명히 구분합니다.
-      - **`key_tips`의 역할 재정의:** 동작별 자세 팁은 각 동작의 `beginner_tip`으로 내려보내고, `key_tips`는 와드 전체를 관통하는 페이싱·분할(브레이크업)·호흡 전략만 담습니다("9회를 3-3-3으로 끊어라"처럼 횟수 분할을 숫자로 제안). 사용자 뷰의 섹션 제목도 "운동 팁" → "와드 전략 (페이싱)"으로 변경.
+    - **프롬프트 설계:** 고정 규칙은 Gemini `systemInstruction`, 와드 원문은 명령이 아닌 JSON 데이터로 분리합니다. few-shot 예시는 자세→일관성→강도 순서, 코치 확인, 고정 중량·높이 처방 금지를 보여줍니다. `youtube_search_keyword`는 실제 영상 ID를 생성하지 않고 부위명 중심의 2~3단어만 만듭니다.
+      - **초보자 안전 원칙:** 목표 시간·Rx보다 통제 가능한 자세를 우선합니다. 1RM 비율, 빈 바 중량, 특정 박스 높이를 개인 권장값으로 단정하지 않으며 처음 하는 역도·점프·인버전·링 동작은 `coach_check_required`로 표시합니다.
+      - **동작별 정보의 4분할:** 각 동작마다 `description`(동작 개요) / `beginner_tip`(즉시 적용할 큐) / `caution`(관찰 가능한 중단·난도 조절 신호) / `scaling_tip`(가장 쉬운 선택부터 단계적 대안)을 분리합니다.
+      - **`key_tips` 우선순위:** 자세 유지 → 호흡 유지 → 페이싱 순서로 2~3개만 제공합니다. 고정 분할이나 목표 시간 달성을 강요하지 않습니다.
     - **엔드포인트:** `POST /api/admin/sessions/:id/guide` (인증 필요) — 성공 시 갱신된 세션 반환(200), 세션 없음(404), Gemini 호출/응답 검증 실패(502).
     - `class_type`(CF Class/Strength Class/Weightlifting Class)은 세션 테이블 컬럼으로 이미 존재하므로 LLM 출력에는 중복시키지 않고, 와드 자체의 형식과 콘텐츠만 담습니다.
     ```json
     {
       "workout_type": "AMRAP / For Time / EMOM / Interval / Strength / Weightlifting",
       "target_explanation": "오늘 운동 방식과 목표를 초보자 눈높이에서 설명",
-      "warmup_movements": [
-        { "name_en": "...", "name_kr": "...", "description": "...", "beginner_tip": "...", "caution": "...", "scaling_tip": "..." }
+      "parts": [
+        {
+          "label": "Core / METCON 등 원문 제목",
+          "part_type": "warmup / skill / strength / weightlifting / accessory / metcon / cooldown / unknown",
+          "movements": [
+            { "name_en": "...", "name_kr": "...", "description": "...", "beginner_tip": "...", "caution": "...", "scaling_tip": "...", "coach_check_required": true }
+          ]
+        }
       ],
-      "movements": [
-        { "name_en": "...", "name_kr": "...", "description": "...", "beginner_tip": "...", "caution": "...", "scaling_tip": "..." }
-      ],
+      "safety_note": "일반 안내 및 중단 신호",
+      "needs_review": false,
+      "ambiguities": [],
       "key_tips": ["와드 전체 페이싱/분할/호흡 전략 (동작별 팁 아님)"],
       "cooldown_stretches": [
         { "stretch_name": "...", "target_muscle": "...", "youtube_search_keyword": "..." }
       ]
     }
     ```
-    - **`warmup_movements` (선택 필드):** 와드 원문에 "Core"처럼 본 운동 전에 진행하는 웜업/보조 파트가 별도로 있으면 그 동작들을 담습니다. "METCON"(또는 별도 표시 없는 본 운동) 파트는 항상 `movements`에 담깁니다. 웜업 파트가 없는 와드는 이 필드가 비거나 생략됩니다. (초기에는 "Core+METCON을 별도로 표현할 필요 없음"으로 결정했으나, 실제로 Core 파트가 통째로 누락되는 문제가 발견되어 이 필드를 추가하는 것으로 정정했습니다.)
+    - **`parts`:** 원문의 파트 제목과 순서를 보존합니다. `Core`를 자동으로 웜업으로 간주하지 않고 `accessory` 등 실제 역할로 분류하며, 모호하면 `unknown`과 `ambiguities`로 관리자·코치 확인을 요청합니다. 기존 저장 데이터의 `warmup_movements`/`movements`는 레거시 렌더링으로 계속 지원합니다.
     - **유튜브 관련 설계 결정 (최종):** 특정 영상을 골라 iframe에 임베드하지 않습니다. 검토 과정에서 `listType=search` 검색 기반 embed는 YouTube가 지원을 중단해 재생되지 않음을 확인했고, 대안으로 실존 `video_id`를 직접 임베드하는 방식도 검토했으나 YouTube Data API 연동(키·할당량), `videoEmbeddable` 필터링, LLM의 video_id 환각 위험까지 감당할 이유가 없다고 판단해 **채택하지 않았습니다.**
       - 대신 LLM(또는 관리자)이 `youtube_search_keyword`만 생성하고, 사용자 뷰에서는 `https://www.youtube.com/results?search_query=<keyword>`로 이동하는 **"유튜브에서 검색해보기" 링크**(새 탭)만 제공합니다.
       - 이 방식은 별도 API 연동이 필요 없고, 재생 불가/환각 위험이 원천적으로 없으며, 유튜브 자체의 검색 품질을 그대로 활용합니다. LLM 연동 여부와 무관하게 지금 바로 동작합니다(실제로 더미 데이터로 검증 완료).
