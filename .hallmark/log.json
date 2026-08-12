@@ -1,0 +1,18 @@
+[
+  {
+    "date": "2026-08-12",
+    "scope": "app",
+    "macrostructure": "Day-Rail + Session List / Detail Sheet (bespoke app shell)",
+    "theme": "Sport (adapted — roman display not italic, Big Shoulders Display replaces Inter Tight)",
+    "enrichment": "none",
+    "brief": "CrossFit Beginner Mate · Hum(따뜻한 크림) 시스템을 Sport(블랙+레드, 에너지/강렬함)로 전면 교체"
+  },
+  {
+    "date": "2026-08-12",
+    "scope": "app",
+    "macrostructure": "Day-Rail + Session List / Detail Sheet (bespoke app shell)",
+    "theme": "Hum (adapted, no character moment / streak counter)",
+    "enrichment": "none",
+    "brief": "CrossFit Beginner Mate · 사용자 뷰 + 관리자 대시보드 전면 재디자인 (design.md 기준)"
+  }
+]

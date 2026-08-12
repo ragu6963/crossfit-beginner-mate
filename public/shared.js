@@ -130,15 +130,17 @@ const Shared = (() => {
       )
       .join("");
 
+    // 카테고리별 modifier 클래스는 순수 스타일링 훅이다(로직 없음) — 상세 시트에서 어느 섹션을 보고
+    // 있는지 색으로 구분할 수 있게 한다(크로스핏 지식이 없어도 스캔 가능하도록).
     return `
-      <div class="guide-section">
+      <div class="guide-section guide-section--goal">
         <h3 class="guide-section-title">오늘의 목표</h3>
         <p>${escapeHtml(guide.workout_type)} · ${escapeHtml(guide.target_explanation)}</p>
       </div>
-      ${warmupMovementsHtml ? `<div class="guide-section"><h3 class="guide-section-title">웜업 (Core)</h3>${warmupMovementsHtml}</div>` : ""}
-      ${movementsHtml ? `<div class="guide-section"><h3 class="guide-section-title">동작 설명</h3>${movementsHtml}</div>` : ""}
-      ${keyTipsHtml ? `<div class="guide-section"><h3 class="guide-section-title">와드 전략 (페이싱)</h3><ul class="guide-key-tips">${keyTipsHtml}</ul></div>` : ""}
-      ${stretchesHtml ? `<div class="guide-section"><h3 class="guide-section-title">쿨다운 스트레칭</h3>${stretchesHtml}</div>` : ""}
+      ${warmupMovementsHtml ? `<div class="guide-section guide-section--warmup"><h3 class="guide-section-title">웜업 (Core)</h3>${warmupMovementsHtml}</div>` : ""}
+      ${movementsHtml ? `<div class="guide-section guide-section--movements"><h3 class="guide-section-title">동작 설명</h3>${movementsHtml}</div>` : ""}
+      ${keyTipsHtml ? `<div class="guide-section guide-section--tips"><h3 class="guide-section-title">와드 전략 (페이싱)</h3><ul class="guide-key-tips">${keyTipsHtml}</ul></div>` : ""}
+      ${stretchesHtml ? `<div class="guide-section guide-section--stretch"><h3 class="guide-section-title">쿨다운 스트레칭</h3>${stretchesHtml}</div>` : ""}
     `;
   }
 

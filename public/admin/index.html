@@ -5,23 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>관리자 대시보드 - CrossFit Beginner Mate</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@1.3.9/dist/web/static/pretendard.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
   <main class="container">
-    <div class="admin-header">
-      <h1>와드 관리</h1>
+    <header class="app-bar">
+      <span class="app-wordmark">Crossfit Beginner Mate<span class="app-wordmark-tag">Admin</span></span>
       <button id="logout-btn" class="btn-utility" type="button">로그아웃</button>
-    </div>
+    </header>
 
-    <h2 id="selected-date-title" class="page-date-title"></h2>
+    <div class="day-heading">
+      <div class="day-heading-row">
+        <h2 id="selected-date-title" class="page-date-title"></h2>
+        <button id="add-session-btn" class="btn-primary" type="button">+ 세션 추가</button>
+      </div>
+      <span class="title-sweep"></span>
+    </div>
 
     <div class="week-strip-wrapper">
       <div class="week-strip" id="week-strip"></div>
     </div>
-
-    <button id="add-session-btn" class="btn-primary admin-add-btn" type="button">+ 세션 추가</button>
 
     <div class="content-viewport">
       <div id="content"></div>
@@ -72,7 +79,7 @@
 
   <div class="modal-backdrop hidden" id="modal-backdrop">
     <div class="modal">
-      <h2 id="modal-title" style="margin-bottom: 24px;">세션 추가</h2>
+      <h2 id="modal-title">세션 추가</h2>
       <form id="session-form">
         <input type="hidden" id="session-id" />
         <div class="field">
@@ -97,14 +104,14 @@
           <textarea id="form-raw-wod" required></textarea>
         </div>
         <div class="field">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-            <label style="margin:0;">가이드</label>
+          <div class="field-inline-label">
+            <label>가이드</label>
             <button type="button" class="btn-secondary" id="form-guide-btn">가이드 생성</button>
           </div>
           <div id="form-guide-preview"></div>
         </div>
         <p class="error-text hidden" id="form-error"></p>
-        <div style="display:flex; gap: 12px; justify-content:flex-end;">
+        <div class="modal-actions">
           <button type="button" class="btn-secondary" id="modal-cancel-btn">취소</button>
           <button type="submit" class="btn-primary">저장</button>
         </div>

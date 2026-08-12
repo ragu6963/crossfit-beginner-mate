@@ -1,100 +1,235 @@
-/*
-  DESIGN.md 기반 공용 토큰. Apple 디자인 시스템의 색상/타이포/spacing/radius 규칙을
-  콘텐츠 중심의 이 서비스에 맞게 축소 적용했다(제품 사진·그림자·다크 타일 alternation은 미사용).
-  본문 폰트는 한글 가독성을 위해 Pretendard를 사용한다(각 HTML의 <head>에서 CDN으로 로드).
-*/
+/* Hallmark · genre: editorial · macrostructure: Day-Rail + Session List / Detail Sheet (bespoke app shell)
+ * theme: Sport (adapted — light paper band, roman not italic display per typography purity rule;
+ * Big Shoulders Display replaces Inter Tight as the outlier face, Inter Tight is display-banned
+ * in typography.md)
+ * design-system: design.md · designed-as-app
+ */
+
+/* ==========================================================================
+   Tokens — single source of truth. See design.md.
+   ========================================================================== */
 :root {
-  --color-primary: #0066cc;
-  --color-primary-focus: #0071e3;
-  --color-canvas: #ffffff;
-  --color-canvas-parchment: #f5f5f7;
-  --color-surface-pearl: #fafafc;
-  --color-ink: #1d1d1f;
-  --color-ink-muted-80: #333333;
-  --color-ink-muted-48: #7a7a7a;
-  --color-hairline: #e0e0e0;
-  --color-divider-soft: rgba(0, 0, 0, 0.08);
-  --color-danger: #c0392b;
+  /* Paper / ink — pure white, everywhere (explicit user call, overrides Hallmark's
+     default "never pure white" heuristic — also removes the tinted paper-2/paper-3
+     step ladder entirely, since the warm-grey card fills read as muddy). Hierarchy
+     is now carried by borders and a translucent ink wash, not by a fill colour. */
+  --color-paper: #ffffff;
+  --color-ink: oklch(18% 0.012 25);
+  --color-ink-2: oklch(18% 0.012 25 / 72%);
+  --color-ink-3: oklch(18% 0.012 25 / 46%);
+  --color-hairline: oklch(18% 0.012 25 / 18%);
+  --color-line: oklch(18% 0.012 25 / 55%);
+  --color-wash: oklch(18% 0.012 25 / 6%);
+  --color-wash-strong: oklch(18% 0.012 25 / 10%);
 
-  --font-display: "Pretendard", system-ui, -apple-system, sans-serif;
+  /* Accent — signal red (brand/primary), amber (danger/caution, deliberately not red).
+     Lightness pulled down / chroma up vs the dark-mode values so text-weight uses of
+     the accent still clear 4.5:1 against light paper (color.md dark-mode recipe, inverted). */
+  --color-accent: oklch(54% 0.22 25);
+  --color-accent-deep: oklch(42% 0.20 25);
+  --color-accent-ink: oklch(98% 0.006 25);
+
+  --color-danger: oklch(56% 0.20 45);
+  --color-info: oklch(50% 0.19 235);
+  --color-cool: oklch(54% 0.18 300);
+
+  --color-focus: oklch(62% 0.19 95);
+
+  --color-scrim: oklch(8% 0.01 25 / 0.6);
+
+  /* Type */
   --font-body: "Pretendard", system-ui, -apple-system, sans-serif;
+  --font-outlier: "Big Shoulders Display", "Pretendard", system-ui, sans-serif;
 
-  --space-xxs: 4px;
-  --space-xs: 8px;
-  --space-sm: 12px;
-  --space-md: 17px;
-  --space-lg: 24px;
-  --space-xl: 32px;
-  --space-xxl: 48px;
+  --text-xs: 0.8125rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-md: 1.0625rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 1.875rem;
 
-  --radius-sm: 8px;
-  --radius-md: 11px;
-  --radius-lg: 18px;
-  --radius-pill: 9999px;
+  /* Space (4pt) */
+  --space-3xs: 0.25rem;
+  --space-2xs: 0.5rem;
+  --space-xs: 0.75rem;
+  --space-sm: 1rem;
+  --space-md: 1.5rem;
+  --space-lg: 2rem;
+  --space-xl: 3rem;
+  --space-2xl: 4rem;
+
+  /* Radius — slab, not pill. Day-number circle is the one deliberate exception. */
+  --radius-card: 6px;
+  --radius-input: 4px;
+  --radius-chip: 4px;
+  --radius-pill: 6px;
+
+  /* Motion — Sport = 0.7x speed, sharp ease-out */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-press: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --dur-micro: 90ms;
+  --dur-short: 160ms;
+  --dur-long: 280ms;
 }
 
+/* ==========================================================================
+   Reset / base
+   ========================================================================== */
 * {
   box-sizing: border-box;
+}
+
+html,
+body {
+  overflow-x: clip;
 }
 
 body {
   margin: 0;
   font-family: var(--font-body);
-  font-size: 17px;
+  font-size: var(--text-md);
   font-weight: 400;
-  line-height: 1.5;
-  letter-spacing: -0.02em;
+  line-height: 1.55;
+  letter-spacing: -0.01em;
   color: var(--color-ink);
-  background: var(--color-canvas-parchment);
+  background: var(--color-paper);
 }
 
-h1, h2, h3 {
-  font-family: var(--font-display);
-  font-weight: 600;
+h1,
+h2,
+h3 {
+  font-family: var(--font-body);
+  font-weight: 800;
+  letter-spacing: -0.02em;
   margin: 0;
+  overflow-wrap: anywhere;
+  min-width: 0;
 }
-
-/* display-lg(34px)/body-strong(17px)는 디스플레이 특유의 타이트 트래킹(음수)을 쓰지만,
-   tagline(21px)은 DESIGN.md 타이포 하이어라키표에서 양의 트래킹(+0.231px)으로 명시되어 있어
-   h1/h3와 동일한 음수 트래킹을 상속하면 스펙과 반대 방향이 된다. h2만 별도로 뒤집는다. */
-h1 { font-size: 34px; letter-spacing: -0.02em; }
-h2 { font-size: 21px; letter-spacing: 0.011em; }
-h3 { font-size: 17px; letter-spacing: -0.02em; }
 
 a {
-  color: var(--color-primary);
+  color: var(--color-accent);
   text-decoration: none;
 }
 
-/* DESIGN.md: button-primary-focus — 2px solid {colors.primary-focus} 아웃라인을 모든 상호작용
-   요소에 일괄 적용(브라우저 기본 아웃라인 대신 브랜드 포커스 링을 사용) */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid var(--color-primary-focus);
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
+  transition: none;
 }
 
+.hidden {
+  display: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 150ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 150ms !important;
+  }
+}
+
+/* ==========================================================================
+   App shell
+   ========================================================================== */
 .container {
   max-width: 720px;
   margin: 0 auto;
-  padding: var(--space-lg) var(--space-md) var(--space-xxl);
+  padding: var(--space-md) var(--space-sm) var(--space-2xl);
 }
 
-/* 상단 날짜 제목 (참고 이미지: 큰 중앙 정렬 타이틀) */
-.page-date-title {
-  text-align: center;
-  font-size: 24px;
+.app-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
   margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-sm);
+  border-bottom: 2px solid var(--color-ink);
 }
 
-/* 날짜 스트립: 좌우 스크롤, 버튼 없이 스크롤로만 주 이동 */
+.app-wordmark {
+  font-family: var(--font-outlier);
+  font-weight: 800;
+  font-size: var(--text-md);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-ink);
+}
+
+.app-wordmark-tag {
+  margin-left: var(--space-2xs);
+  padding: 2px 8px;
+  border-radius: var(--radius-chip);
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+  font-weight: 800;
+}
+
+.day-heading {
+  margin-bottom: var(--space-md);
+}
+
+.day-heading-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.page-date-title {
+  font-size: var(--text-2xl);
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+/* Sport's "horizontal sweep" reveal — the page's one orchestrated motion moment */
+.title-sweep {
+  display: block;
+  height: 3px;
+  margin-top: var(--space-xs);
+  background: var(--color-accent);
+  transform-origin: left;
+  animation: sweep-in var(--dur-long) var(--ease-out) both;
+}
+
+@keyframes sweep-in {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .title-sweep {
+    animation: none;
+    transform: scaleX(1);
+  }
+}
+
+/* ==========================================================================
+   Week strip
+   ========================================================================== */
 .week-strip-wrapper {
   overflow-x: auto;
-  margin: 0 calc(-1 * var(--space-md)) var(--space-xl);
-  padding: 0 var(--space-md);
+  margin: 0 calc(-1 * var(--space-sm)) var(--space-lg);
+  padding: 0 var(--space-sm) var(--space-2xs);
   scrollbar-width: none;
 }
 
@@ -104,12 +239,12 @@ textarea:focus-visible {
 
 .week-strip {
   display: flex;
-  gap: var(--space-sm);
+  gap: var(--space-2xs);
 }
 
 .day-cell {
   flex: 0 0 auto;
-  width: 44px;
+  width: 46px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -117,79 +252,92 @@ textarea:focus-visible {
   background: none;
   border: none;
   cursor: pointer;
-  padding: var(--space-xxs) 0;
+  padding: var(--space-3xs) 0;
+  border-radius: var(--radius-chip);
+  transition: background-color var(--dur-short) var(--ease-out);
 }
 
 .day-cell .day-label {
-  font-size: 13px;
-  color: var(--color-ink-muted-48);
+  font-family: var(--font-outlier);
+  font-weight: 700;
+  font-size: var(--text-xs);
+  color: var(--color-ink-3);
+  text-transform: uppercase;
 }
 
 .day-cell .day-number {
-  font-size: 18px;
-  font-weight: 600;
+  font-family: var(--font-outlier);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-md);
+  font-weight: 800;
   color: var(--color-ink);
-  width: 32px;
-  height: 32px;
-  line-height: 32px;
+  width: 34px;
+  height: 34px;
+  line-height: 34px;
   border-radius: 50%;
+  transition: transform var(--dur-micro) var(--ease-press), background-color var(--dur-short) var(--ease-out);
 }
 
 .day-cell.past .day-label,
 .day-cell.past .day-number {
-  color: var(--color-ink-muted-48);
-  font-weight: 400;
+  color: var(--color-ink-3);
+  font-weight: 700;
 }
 
-.day-cell.selected .day-label,
+.day-cell.selected .day-label {
+  color: var(--color-ink);
+}
+
 .day-cell.selected .day-number {
-  color: var(--color-primary);
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
 }
 
-.day-cell.selected .day-number {
-  border: 2px solid var(--color-primary);
+.day-cell:active .day-number {
+  transform: scale(0.92);
 }
 
-/* 날짜 변경 시 좌우 슬라이드 전환 */
+/* ==========================================================================
+   Date-swap slide transition
+   ========================================================================== */
 .content-viewport {
   overflow-x: hidden;
 }
 
 #content {
-  transition: transform 0.2s ease, opacity 0.2s ease;
+  transition: transform var(--dur-short) var(--ease-out), opacity var(--dur-short) var(--ease-out);
 }
 
-/* 세션 요약 행: 관리자가 등록한 와드 원문을 바로 노출. LLM 추가 정보만 클릭 시 상세 시트로 표시 */
+/* ==========================================================================
+   Session cards — white fill, hairline border, thickens to accent red on
+   hover/press. No background-colour step: border colour carries the state.
+   ========================================================================== */
 .session-row {
   display: block;
   width: 100%;
-  background: var(--color-canvas);
+  background: var(--color-paper);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
   padding: var(--space-md) var(--space-lg);
   margin-bottom: var(--space-sm);
   cursor: pointer;
   font-family: var(--font-body);
   text-align: left;
+  transition: border-color var(--dur-short) var(--ease-out);
 }
 
 .session-row.session-row-static {
   cursor: default;
 }
 
+@media (hover: hover) and (pointer: fine) {
+  .session-row:not(.session-row-static):hover {
+    border-color: var(--color-accent);
+  }
+}
 
-.class-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  background: var(--color-canvas-parchment);
-  color: var(--color-primary);
-  font-size: 13px;
-  font-weight: 700;
+.session-row:not(.session-row-static):active {
+  border-color: var(--color-accent-deep);
 }
 
 .session-row-header {
@@ -200,50 +348,57 @@ textarea:focus-visible {
 }
 
 .class-type-name {
-  font-size: 14px;
-  font-weight: 400;
-  color: var(--color-ink-muted-48);
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-2);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-chip);
+  padding: 3px 10px;
 }
 
 .session-row-header .class-type-name {
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--color-ink);
+  font-size: var(--text-xs);
 }
 
 .session-row-wod {
   white-space: pre-wrap;
   font-family: var(--font-body);
-  font-size: 15px;
-  line-height: 1.5;
-  color: var(--color-ink-muted-80);
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  color: var(--color-ink-2);
   margin: var(--space-xs) 0 0;
 }
 
-/* DESIGN.md의 store-utility-card 패턴 그대로: 카드는 배경/칩 없이 끝에 놓인 순수 text-link
-   하나로만 "더 볼 내용이 있음"을 알린다({component.text-link} 그 자체를 재사용). */
 .session-row-link {
   display: block;
-  color: var(--color-primary);
-  font-size: 15px;
-  font-weight: 600;
+  color: var(--color-accent);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
   margin: var(--space-sm) 0 0;
 }
 
-/* 세션 상세 시트: PC=중앙 모달(스케일 페이드), 모바일=하단에서 올라오는 바텀시트(슬라이드업) */
+/* ==========================================================================
+   Session detail — PC = centred modal, mobile = bottom sheet
+   ========================================================================== */
 .detail-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--color-scrim);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: var(--space-lg);
-  z-index: 100;
+  z-index: 400;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transition: opacity 0.25s ease, visibility 0.25s ease;
+  transition: opacity var(--dur-long) var(--ease-out), visibility var(--dur-long) var(--ease-out);
 }
 
 .detail-backdrop.open {
@@ -253,16 +408,17 @@ textarea:focus-visible {
 }
 
 .detail-panel {
-  background: var(--color-canvas);
-  border-radius: var(--radius-lg);
-  padding: var(--space-xl);
+  background: var(--color-paper);
+  border-top: 3px solid var(--color-accent);
+  border-radius: var(--radius-card);
+  padding: var(--space-lg);
   width: 100%;
   max-width: 480px;
   max-height: 80vh;
   overflow-y: auto;
   transform: scale(0.96);
   opacity: 0;
-  transition: transform 0.25s ease, opacity 0.25s ease;
+  transition: transform var(--dur-long) var(--ease-out), opacity var(--dur-long) var(--ease-out);
 }
 
 .detail-backdrop.open .detail-panel {
@@ -288,87 +444,134 @@ textarea:focus-visible {
 }
 
 .detail-close-btn {
-  background: none;
-  border: none;
-  font-size: 18px;
-  color: var(--color-ink-muted-48);
+  background: var(--color-paper);
+  border: 1px solid var(--color-line);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: var(--text-base);
+  color: var(--color-ink-2);
   cursor: pointer;
-  padding: var(--space-xs);
+  transition: transform var(--dur-micro) var(--ease-press), background-color var(--dur-short) var(--ease-out);
+}
+
+.detail-close-btn:hover {
+  background: var(--color-wash);
+}
+
+.detail-close-btn:active {
+  transform: scale(0.9);
 }
 
 .detail-panel pre.raw-wod {
   white-space: pre-wrap;
   font-family: var(--font-body);
-  font-size: 17px;
-  line-height: 1.5;
+  font-size: var(--text-md);
+  line-height: 1.55;
   margin: 0;
   padding-top: var(--space-sm);
   border-top: 1px solid var(--color-hairline);
 }
 
-/* LLM 출력(parsed_guide) 렌더링 영역 */
+/* ==========================================================================
+   Guide sections — white fill, hairline border. Category colour lives on the
+   small square + label only (see .guide-section-title below), never on the
+   card's border edge (the "side-stripe card" anti-pattern) or a fill colour.
+   ========================================================================== */
 .guide-section {
-  margin-top: var(--space-lg);
-  padding-top: var(--space-lg);
-  border-top: 1px solid var(--color-hairline);
+  margin-top: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-card);
+  background: var(--color-paper);
+  border: 1px solid var(--color-hairline);
 }
 
+.guide-section--goal .guide-section-title {
+  color: var(--color-accent);
+}
+
+.guide-section--warmup .guide-section-title {
+  color: var(--color-danger);
+}
+
+.guide-section--tips .guide-section-title {
+  color: var(--color-info);
+}
+
+.guide-section--stretch .guide-section-title {
+  color: var(--color-cool);
+}
+
+/* Category colour lives on a small square beside the label, not a side-stripe
+   border (the "side-stripe card" anti-pattern — see anti-patterns.md). The
+   square inherits `currentColor` from the title's own colour rule above. */
 .guide-section-title {
-  font-size: 15px;
-  color: var(--color-ink-muted-48);
-  margin-bottom: var(--space-sm);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-outlier);
+  font-weight: 700;
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-2);
+  margin-bottom: var(--space-xs);
+}
+
+.guide-section-title::before {
+  content: "";
+  display: block;
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  background: currentColor;
 }
 
 .guide-movement {
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-md);
+}
+
+.guide-movement:last-child {
+  margin-bottom: 0;
 }
 
 .guide-movement-name {
-  font-weight: 600;
-  font-size: 16px;
+  font-weight: 700;
+  font-size: var(--text-base);
 }
 
 .guide-movement-name-en {
   font-weight: 400;
-  color: var(--color-ink-muted-48);
-  font-size: 14px;
+  color: var(--color-ink-2);
+  font-size: var(--text-sm);
 }
 
 .guide-movement-desc {
   margin: 4px 0 0;
-  font-size: 15px;
+  font-size: var(--text-sm);
 }
 
-/* 동작별 부가 정보(초보자 팁 / 주의사항 / 스케일링)는 설명 본문보다 한 단계 낮은 위계로 두되,
-   라벨 칩으로 종류를 구분한다. 주의사항만 danger 계열을 써서 시각적으로 먼저 걸리게 한다. */
 .guide-beginner-tip,
 .guide-caution,
 .guide-scaling-tip {
   margin: var(--space-xs) 0 0;
-  padding-left: var(--space-sm);
-  border-left: 2px solid var(--color-hairline);
-  font-size: 14px;
+  font-size: var(--text-sm);
   line-height: 1.55;
-  color: var(--color-ink-muted-80);
+  color: var(--color-ink-2);
 }
 
+/* Category colour lives on the label itself (bold + coloured word), not a
+   side-stripe border — same fix as .guide-section-title above. */
 .guide-note-label {
   display: inline-block;
   margin-right: var(--space-xs);
-  font-weight: 600;
-  font-size: 13px;
-}
-
-.guide-beginner-tip {
-  border-left-color: var(--color-primary);
+  font-weight: 700;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
 }
 
 .guide-beginner-tip .guide-note-label {
-  color: var(--color-primary);
-}
-
-.guide-caution {
-  border-left-color: var(--color-danger);
+  color: var(--color-info);
 }
 
 .guide-caution .guide-note-label {
@@ -376,51 +579,84 @@ textarea:focus-visible {
 }
 
 .guide-scaling-tip .guide-note-label {
-  color: var(--color-ink-muted-48);
+  color: var(--color-ink-2);
 }
 
 .guide-key-tips {
   margin: 0;
   padding-left: 18px;
-  font-size: 15px;
+  font-size: var(--text-sm);
 }
 
 .guide-key-tips li {
   margin-bottom: 4px;
 }
 
-/* 내 기록(관리자 전용) 입력 및 구조화 결과 표시 */
+.guide-key-tips li::marker {
+  color: var(--color-info);
+}
+
+.guide-stretch {
+  margin-bottom: var(--space-sm);
+}
+
+.guide-stretch:last-child {
+  margin-bottom: 0;
+}
+
+.guide-stretch-name {
+  font-weight: 700;
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-2xs);
+}
+
+.guide-video-search-link {
+  display: inline-block;
+  font-size: var(--text-sm);
+  color: var(--color-cool);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-pill);
+  padding: 8px 16px;
+  transition: border-color var(--dur-short) var(--ease-out);
+}
+
+.guide-video-search-link:hover {
+  border-color: var(--color-cool);
+}
+
+/* ==========================================================================
+   내 기록 (관리자 전용)
+   ========================================================================== */
 .record-input {
   width: 100%;
   font-family: var(--font-body);
-  font-size: 15px;
-  line-height: 1.5;
+  font-size: var(--text-sm);
+  line-height: 1.55;
   padding: var(--space-sm);
   border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-input);
+  background: var(--color-paper);
+  color: var(--color-ink);
   resize: vertical;
 }
 
-/* 같은 상세 패널 안의 관리자 액션 행(.detail-admin-actions)과 같은 리듬으로 보이도록 gap을 맞춘다.
-   구분선은 두지 않는다 — 이미 guide-section 안에 들어 있어 위쪽에 선이 하나 더 생기면 과해진다. */
 .record-hint {
-  margin: var(--space-xxs) 0 0;
-  font-size: 13px;
-  color: var(--color-ink-muted-48);
+  margin: var(--space-2xs) 0 0;
+  font-size: var(--text-xs);
+  color: var(--color-ink-3);
 }
 
 .record-actions {
   display: flex;
-  gap: var(--space-sm);
+  gap: var(--space-xs);
   margin-top: var(--space-sm);
+  flex-wrap: wrap;
 }
 
 .record-parsed {
   margin-top: var(--space-sm);
 }
 
-/* 와드가 여러 파트(스트렝스 + 메트콘 등)로 나뉘면 파트별로 결과를 보여준다. 파트가 하나뿐이면
-   제목 없이 배지만 나오므로 아래 여백만 적용된다. */
 .record-part + .record-part {
   margin-top: var(--space-sm);
   padding-top: var(--space-sm);
@@ -428,30 +664,38 @@ textarea:focus-visible {
 }
 
 .record-part-label {
-  font-size: 13px;
-  color: var(--color-ink-muted-48);
-  margin-bottom: var(--space-xxs);
+  font-family: var(--font-outlier);
+  font-weight: 700;
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+  margin-bottom: var(--space-2xs);
 }
 
 .record-badges {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-xxs);
+  gap: var(--space-2xs);
 }
 
 .record-badge {
   display: inline-block;
-  font-size: 13px;
+  font-size: var(--text-xs);
+  font-weight: 600;
   padding: 4px 10px;
-  border-radius: var(--radius-pill);
-  background: var(--color-canvas-parchment);
-  color: var(--color-ink-muted-80);
+  border-radius: var(--radius-chip);
+  border: 1px solid var(--color-hairline);
+  color: var(--color-ink-2);
 }
 
 .record-badge-score {
-  background: var(--color-primary);
-  color: #fff;
-  font-weight: 600;
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-accent-ink);
+  font-weight: 800;
+  font-family: var(--font-outlier);
+  font-variant-numeric: tabular-nums;
 }
 
 .record-laps {
@@ -459,50 +703,334 @@ textarea:focus-visible {
   flex-wrap: wrap;
   gap: var(--space-xs);
   margin-top: var(--space-xs);
-  font-size: 14px;
-  color: var(--color-ink-muted-80);
+  font-size: var(--text-sm);
+  font-family: var(--font-outlier);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink-2);
 }
 
 .record-lap b {
-  color: var(--color-ink-muted-48);
-  font-weight: 600;
+  color: var(--color-ink-3);
+  font-weight: 700;
   margin-right: 2px;
 }
 
 .record-detail {
   margin: var(--space-xs) 0 0;
-  font-size: 14px;
-  color: var(--color-ink-muted-80);
+  font-size: var(--text-sm);
+  color: var(--color-ink-2);
 }
 
-/* 해석이 미심쩍거나 원문 일부가 반영되지 않은 경우. 크로스핏 지식 없이도 "내가 한 것과 다른가"만
-   보고 판단할 수 있어야 하므로 눈에 띄게 둔다. */
 .record-warning {
   margin: var(--space-xs) 0 0;
-  font-size: 14px;
+  font-size: var(--text-sm);
   color: var(--color-danger);
 }
 
-.guide-stretch {
+/* ==========================================================================
+   안내 카드 (데이터 미존재)
+   ========================================================================== */
+.empty-card {
+  background: var(--color-paper);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-card);
+  padding: var(--space-2xl) var(--space-lg);
+  text-align: center;
+  color: var(--color-ink-2);
+}
+
+.empty-card p {
+  margin: 0 0 var(--space-xs);
+}
+
+/* ==========================================================================
+   Buttons — oversized solid primary (red slab), soft secondary, outline
+   danger (amber, deliberately not red — red is the brand, not the warning).
+   ========================================================================== */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4em;
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+  font-size: var(--text-md);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  border: 0;
+  border-radius: var(--radius-pill);
+  padding: 12px 22px;
+  cursor: pointer;
+  white-space: nowrap;
+  transform: translateY(0);
+  transition: transform var(--dur-micro) var(--ease-press), background-color var(--dur-short) var(--ease-out);
+}
+
+.btn-primary:hover {
+  background: color-mix(in oklch, var(--color-accent) 88%, white 12%);
+}
+
+.btn-primary:active {
+  transform: translateY(2px);
+  background: var(--color-accent-deep);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-size: var(--text-md);
+  font-weight: 700;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-pill);
+  padding: 11px 20px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--dur-short) var(--ease-out), border-color var(--dur-short) var(--ease-out),
+    transform var(--dur-micro) var(--ease-press);
+}
+
+.btn-secondary:hover {
+  background: var(--color-wash);
+  border-color: var(--color-ink);
+}
+
+.btn-secondary:active {
+  transform: scale(0.96);
+  background: var(--color-wash-strong);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--color-danger);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-pill);
+  padding: 7px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--dur-short) var(--ease-out), transform var(--dur-micro) var(--ease-press);
+}
+
+.btn-danger:hover {
+  background: color-mix(in oklch, var(--color-danger) 12%, transparent);
+}
+
+.btn-danger:active {
+  transform: scale(0.96);
+}
+
+.btn-utility {
+  display: inline-flex;
+  align-items: center;
+  background: var(--color-ink);
+  color: var(--color-paper);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border: none;
+  border-radius: var(--radius-chip);
+  padding: 9px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform var(--dur-micro) var(--ease-press), opacity var(--dur-short) var(--ease-out);
+}
+
+.btn-utility:hover {
+  opacity: 0.85;
+}
+
+.btn-utility:active {
+  transform: scale(0.95);
+}
+
+/* ==========================================================================
+   Forms
+   ========================================================================== */
+.field {
   margin-bottom: var(--space-md);
 }
 
-.guide-stretch-name {
-  font-weight: 600;
-  font-size: 15px;
-  margin-bottom: var(--space-xs);
+.field label {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  margin-bottom: var(--space-2xs);
+  color: var(--color-ink-2);
 }
 
-.guide-video-search-link {
-  display: inline-block;
-  font-size: 14px;
-  color: var(--color-primary);
-  background: var(--color-canvas-parchment);
-  border-radius: var(--radius-pill);
-  padding: 8px 16px;
+.field input,
+.field select {
+  width: 100%;
+  height: 46px;
+  padding: 0 16px;
+  border-radius: var(--radius-input);
+  border: 1px solid var(--color-hairline);
+  background: var(--color-paper);
+  font-size: var(--text-md);
+  font-family: var(--font-body);
+  color: var(--color-ink);
+  transition: border-color var(--dur-short) var(--ease-out);
 }
 
+.field input:focus-visible,
+.field select:focus-visible {
+  border-color: var(--color-focus);
+}
+
+.field textarea {
+  width: 100%;
+  min-height: 160px;
+  padding: 12px 16px;
+  border-radius: var(--radius-input);
+  border: 1px solid var(--color-hairline);
+  background: var(--color-paper);
+  font-size: var(--text-md);
+  font-family: var(--font-body);
+  color: var(--color-ink);
+  resize: vertical;
+}
+
+.error-text {
+  color: var(--color-danger);
+  font-size: var(--text-sm);
+  margin-top: var(--space-xs);
+}
+
+/* ==========================================================================
+   관리자 대시보드
+   ========================================================================== */
+.detail-admin-actions {
+  display: flex;
+  gap: var(--space-xs);
+  margin-top: var(--space-lg);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--color-hairline);
+}
+
+.detail-admin-actions .btn-secondary,
+.detail-admin-actions .btn-danger,
+.record-actions .btn-secondary,
+.record-actions .btn-danger {
+  flex: 1;
+  text-align: center;
+  padding: 11px 12px;
+  font-size: var(--text-sm);
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--color-scrim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  z-index: 400;
+}
+
+.modal {
+  background: var(--color-paper);
+  border-top: 3px solid var(--color-accent);
+  border-radius: var(--radius-card);
+  padding: var(--space-lg);
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal h2 {
+  font-size: var(--text-xl);
+  margin-bottom: var(--space-md);
+  text-transform: uppercase;
+}
+
+.field-inline-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-2xs);
+}
+
+.field-inline-label label {
+  margin: 0;
+}
+
+.modal-actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+}
+
+/* ==========================================================================
+   로그인
+   ========================================================================== */
+.login-container {
+  max-width: 360px;
+  margin: 96px auto 0;
+  padding: var(--space-lg);
+  text-align: center;
+}
+
+.login-wordmark {
+  display: block;
+  margin-bottom: var(--space-sm);
+}
+
+.login-container h1 {
+  font-size: var(--text-xl);
+  margin-bottom: var(--space-lg);
+  text-transform: uppercase;
+}
+
+.login-container .field {
+  text-align: left;
+}
+
+.login-submit {
+  width: 100%;
+}
+
+/* ==========================================================================
+   Mobile — verified at 320 / 375 / 414 / 768
+   ========================================================================== */
 @media (max-width: 640px) {
+  .container {
+    padding: var(--space-sm) var(--space-2xs) var(--space-xl);
+  }
+
+  .app-bar {
+    margin-bottom: var(--space-md);
+  }
+
+  .day-heading-row {
+    flex-wrap: wrap;
+  }
+
+  .page-date-title {
+    font-size: var(--text-xl);
+  }
+
   .detail-backdrop {
     align-items: flex-end;
     padding: 0;
@@ -511,8 +1039,8 @@ textarea:focus-visible {
   .detail-panel {
     max-width: none;
     max-height: 85vh;
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    padding: var(--space-sm) var(--space-lg) var(--space-xl);
+    border-radius: var(--radius-card) var(--radius-card) 0 0;
+    padding: var(--space-xs) var(--space-md) var(--space-xl);
     transform: translateY(100%);
   }
 
@@ -526,215 +1054,26 @@ textarea:focus-visible {
     height: 4px;
     border-radius: var(--radius-pill);
     background: var(--color-hairline);
-    margin: var(--space-xs) auto var(--space-md);
-  }
-}
-
-/* 안내 카드 (데이터 미존재) */
-.empty-card {
-  background: var(--color-canvas);
-  border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-lg);
-  padding: var(--space-xxl) var(--space-lg);
-  text-align: center;
-  color: var(--color-ink-muted-80);
-}
-
-.empty-card p {
-  margin: 0 0 var(--space-xs);
-}
-
-/* 버튼 */
-.btn-primary {
-  display: inline-block;
-  background: var(--color-primary);
-  color: #ffffff;
-  font-size: 17px;
-  font-weight: 400;
-  border: none;
-  border-radius: var(--radius-pill);
-  padding: 11px 22px;
-  cursor: pointer;
-}
-
-.btn-secondary {
-  display: inline-block;
-  background: transparent;
-  color: var(--color-primary);
-  font-size: 17px;
-  border: 1px solid var(--color-primary);
-  border-radius: var(--radius-pill);
-  padding: 11px 22px;
-  cursor: pointer;
-}
-
-.btn-danger {
-  display: inline-block;
-  background: transparent;
-  color: var(--color-danger);
-  font-size: 14px;
-  border: 1px solid var(--color-danger);
-  border-radius: var(--radius-pill);
-  padding: 6px 14px;
-  cursor: pointer;
-}
-
-.btn-utility {
-  display: inline-block;
-  background: var(--color-ink);
-  color: #ffffff;
-  font-size: 14px;
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: 8px 15px;
-  cursor: pointer;
-}
-
-/* DESIGN.md: scale(0.95) press state는 시스템 전역 마이크로 인터랙션이지만, 이 규칙은 작고
-   버튼처럼 생긴 컨트롤(pill 버튼, 원형 날짜 셀 등)을 대상으로 한 것이다. 여러 줄짜리 카드
-   전체(.session-row)를 축소시키면 부자연스러워 보이므로 카드류는 제외한다. */
-.btn-primary:active,
-.btn-secondary:active,
-.btn-danger:active,
-.btn-utility:active,
-.detail-close-btn:active,
-.day-cell:active {
-  transform: scale(0.95);
-}
-
-.session-row:not(.session-row-static):active {
-  background: var(--color-canvas-parchment);
-}
-
-/* 폼 */
-.field {
-  margin-bottom: var(--space-lg);
-}
-
-.field label {
-  display: block;
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: var(--space-xxs);
-  color: var(--color-ink-muted-80);
-}
-
-.field input,
-.field select {
-  width: 100%;
-  height: 44px;
-  padding: 0 16px;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--color-divider-soft);
-  background: var(--color-canvas);
-  font-size: 17px;
-  font-family: var(--font-body);
-  color: var(--color-ink);
-}
-
-.field textarea {
-  width: 100%;
-  min-height: 160px;
-  padding: 12px 16px;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-divider-soft);
-  background: var(--color-canvas);
-  font-size: 17px;
-  font-family: var(--font-body);
-  color: var(--color-ink);
-  resize: vertical;
-}
-
-.error-text {
-  color: var(--color-danger);
-  font-size: 14px;
-  margin-top: var(--space-xs);
-}
-
-/* 관리자 대시보드 */
-.admin-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-lg);
-}
-
-.admin-add-btn {
-  display: block;
-  margin-bottom: var(--space-lg);
-}
-
-.detail-admin-actions {
-  display: flex;
-  gap: var(--space-sm);
-  margin-top: var(--space-lg);
-  padding-top: var(--space-lg);
-  border-top: 1px solid var(--color-hairline);
-}
-
-/* 상세 패널 안의 액션 버튼은 기본 pill 버튼(17px)보다 한 단계 작게, 같은 너비로 나눠 갖는다.
-   기록 액션 행도 같은 규칙을 공유해 패널 안에서 버튼 톤이 어긋나지 않게 한다. */
-.detail-admin-actions .btn-secondary,
-.detail-admin-actions .btn-danger,
-.record-actions .btn-secondary,
-.record-actions .btn-danger {
-  flex: 1;
-  text-align: center;
-  padding: 11px 14px;
-  font-size: 15px;
-}
-
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-lg);
-  z-index: 100;
-}
-
-.modal {
-  background: var(--color-canvas);
-  border-radius: var(--radius-lg);
-  padding: var(--space-xl);
-  width: 100%;
-  max-width: 480px;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.hidden {
-  display: none !important;
-}
-
-.login-container {
-  max-width: 360px;
-  margin: 120px auto 0;
-  padding: var(--space-lg);
-  text-align: center;
-}
-
-.login-container .field {
-  text-align: left;
-}
-
-/* 모바일 반응형 (prd.md: 모바일 필수 대응) */
-@media (max-width: 640px) {
-  .container {
-    padding: var(--space-md) var(--space-sm) var(--space-xl);
-  }
-
-  h1 {
-    font-size: 28px;
-  }
-
-  .page-date-title {
-    font-size: 20px;
+    margin: var(--space-xs) auto var(--space-sm);
   }
 
   .login-container {
-    margin-top: 64px;
+    margin-top: 56px;
+  }
+}
+
+@media (max-width: 420px) {
+  .record-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .detail-admin-actions {
+    flex-wrap: wrap;
+  }
+
+  .detail-admin-actions .btn-secondary,
+  .detail-admin-actions .btn-danger {
+    flex: 1 1 calc(50% - var(--space-xs) / 2);
   }
 }
